@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IR 조명과 글로벌 셔터 · ShutterBook</title>
+<meta name="description" content="능동 NIR 조명을 노출 창에 맞추는 스트로브 동기화, 햇빛 대비 신호와 SNR, 조명 켜짐/꺼짐 프레임 차분, 시선 추적과 깊이 센싱까지 — 글로벌 셔터와 근적외선 조명의 조합.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%230F1A1C%22/%3E%3Cg%20fill%3D%22%231FB5A6%22%3E%3Crect%20x%3D%226%22%20y%3D%227%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2212.2%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2217.4%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2222.6%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ShutterBook — 글로벌 셔터 이미지 센서 교과서
+   Layout concept: one reading column (≈42rem) with lab panels that break out to the wide track.
+   Color carries meaning: teal = global shutter, amber = rolling shutter, crimson = near-infrared. */
+
+:root {
+  --bg: #F3F6F6;
+  --surface: #FFFFFF;
+  --surface-2: #EAF0F0;
+  --surface-3: #DCE5E5;
+  --ink: #0F1A1C;
+  --ink-2: #3D4E53;
+  --muted: #627378;
+  --line: #CFD9DA;
+  --line-2: #E2E9EA;
+  --accent: #007A70;
+  --accent-strong: #005E56;
+  --accent-wash: rgba(0, 122, 112, 0.09);
+  --on-accent: #FFFFFF;
+
+  /* semantic encodings (validated as a set, light surface) */
+  --gs: #008A7E;
+  --rs: #C26A00;
+  --nir: #B4144E;
+  --gs-wash: rgba(0, 138, 126, 0.12);
+  --rs-wash: rgba(194, 106, 0, 0.13);
+  --nir-wash: rgba(180, 20, 78, 0.11);
+
+  /* colour-filter channels */
+  --ch-r: #D23A3A;
+  --ch-g: #2B8C45;
+  --ch-b: #2F5BD3;
+  --ch-ir: #5E1A3D;
+
+  --good: #1C7C35;
+  --bad: #B3261E;
+  --scene: #0E1416;          /* backdrop of simulated scenes */
+  --scene-ink: #E9F1F1;
+
+  --shadow: 0 1px 2px rgba(15, 26, 28, 0.05), 0 6px 20px rgba(15, 26, 28, 0.05);
+
+  --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --fs-0: 0.8125rem;
+  --fs-1: 0.9375rem;
+  --fs-2: 1.0625rem;
+  --fs-3: 1.25rem;
+  --fs-4: 1.5625rem;
+  --fs-5: 2.0rem;
+  --fs-6: 2.75rem;
+
+  --measure: 42rem;
+  --wide: 70rem;
+  --gutter: clamp(16px, 4vw, 40px);
+  --r1: 6px;
+  --r2: 10px;
+  --top-h: 56px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1213;
+    --surface: #111A1C;
+    --surface-2: #172326;
+    --surface-3: #203034;
+    --ink: #E2ECEC;
+    --ink-2: #A7B9BC;
+    --muted: #7A8E92;
+    --line: #26363A;
+    --line-2: #1C2A2D;
+    --accent: #3CC2B4;
+    --accent-strong: #6ED8CC;
+    --accent-wash: rgba(60, 194, 180, 0.12);
+    --on-accent: #04201D;
+    --gs: #1F9E92;
+    --rs: #C97E12;
+    --nir: #E8487A;
+    --gs-wash: rgba(31, 158, 146, 0.18);
+    --rs-wash: rgba(201, 126, 18, 0.18);
+    --nir-wash: rgba(232, 72, 122, 0.16);
+    --ch-r: #F06363;
+    --ch-g: #45B86A;
+    --ch-b: #6B92FF;
+    --ch-ir: #B9467E;
+    --good: #46C46A;
+    --bad: #FF7A70;
+    --scene: #070B0C;
+    --scene-ink: #E9F1F1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0B1213;
+  --surface: #111A1C;
+  --surface-2: #172326;
+  --surface-3: #203034;
+  --ink: #E2ECEC;
+  --ink-2: #A7B9BC;
+  --muted: #7A8E92;
+  --line: #26363A;
+  --line-2: #1C2A2D;
+  --accent: #3CC2B4;
+  --accent-strong: #6ED8CC;
+  --accent-wash: rgba(60, 194, 180, 0.12);
+  --on-accent: #04201D;
+  --gs: #1F9E92;
+  --rs: #C97E12;
+  --nir: #E8487A;
+  --gs-wash: rgba(31, 158, 146, 0.18);
+  --rs-wash: rgba(201, 126, 18, 0.18);
+  --nir-wash: rgba(232, 72, 122, 0.16);
+  --ch-r: #F06363;
+  --ch-g: #45B86A;
+  --ch-b: #6B92FF;
+  --ch-ir: #B9467E;
+  --good: #46C46A;
+  --bad: #FF7A70;
+  --scene: #070B0C;
+  --scene-ink: #E9F1F1;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--top-h) + 16px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-2);
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg, canvas { max-width: 100%; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+::selection { background: var(--accent-wash); }
+h1, h2, h3, h4 { line-height: 1.3; text-wrap: balance; color: var(--ink); letter-spacing: -0.015em; }
+h2 { font-size: var(--fs-4); font-weight: 700; margin: 3.2em 0 0.7em; }
+h3 { font-size: var(--fs-3); font-weight: 600; margin: 2.2em 0 0.5em; }
+h4 { font-size: var(--fs-2); font-weight: 600; margin: 1.6em 0 0.4em; }
+p { margin: 0 0 1em; }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: normal; color: var(--ink); background: linear-gradient(transparent 62%, var(--accent-wash) 62%); }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 3rem 0; }
+ul, ol { padding-left: 1.3em; margin: 0 0 1em; }
+li { margin: 0.25em 0; }
+li::marker { color: var(--muted); }
+small { font-size: var(--fs-0); }
+.en { color: var(--muted); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto;
+  height: var(--top-h); padding-inline: var(--gutter);
+  display: flex; align-items: center; gap: 14px;
+}
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand:hover { color: var(--ink); }
+.brand-mark { width: 26px; height: 22px; display: grid; gap: 3px; }
+.brand-mark i { display: block; height: 3.5px; border-radius: 2px; background: var(--gs); transition: transform .45s cubic-bezier(.3,.7,.2,1); }
+.brand:hover .brand-mark i:nth-child(2) { transform: translateX(4px); }
+.brand:hover .brand-mark i:nth-child(3) { transform: translateX(8px); }
+.brand:hover .brand-mark i:nth-child(4) { transform: translateX(12px); }
+.brand:hover .brand-mark i { background: var(--rs); }
+.brand small { font-weight: 500; color: var(--muted); font-size: var(--fs-0); }
+.crumb { color: var(--muted); font-size: var(--fs-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.crumb b { color: var(--ink-2); font-weight: 600; }
+.top-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.icon-btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  height: 34px; min-width: 34px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: var(--fs-1);
+}
+.icon-btn:hover { border-color: var(--muted); }
+.icon-btn svg { width: 16px; height: 16px; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--accent); width: 0; transition: width .1s linear; }
+
+.drawer {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: rgba(5, 12, 13, 0.45);
+}
+.drawer.open { display: block; }
+.drawer-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: min(380px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--line);
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  overflow-y: auto;
+}
+.drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.drawer-head b { font-size: var(--fs-1); color: var(--muted); font-weight: 600; }
+.drawer ol { list-style: none; padding: 0; margin: 0; }
+.drawer li { margin: 0; }
+.drawer a { display: grid; grid-template-columns: 2.2em 1fr; gap: 4px; padding: 9px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; line-height: 1.45; }
+.drawer a:hover { background: var(--surface-2); }
+.drawer a[aria-current="page"] { background: var(--accent-wash); }
+.drawer a span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- page shells ---------- */
+main { display: block; }
+.shell { max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto; padding-inline: var(--gutter); }
+.prose { max-width: var(--measure); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+/* ---------- chapter header ---------- */
+.ch-head { padding-block: clamp(36px, 7vw, 72px) 8px; }
+.ch-label { display: flex; align-items: baseline; gap: 12px; color: var(--muted); font-size: var(--fs-1); margin-bottom: 10px; }
+.ch-label .ch-n { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ch-head h1 { font-size: clamp(var(--fs-5), 5vw, var(--fs-6)); font-weight: 700; letter-spacing: -0.03em; margin: 0 0 0.45em; line-height: 1.18; }
+.ch-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); margin-bottom: 1.2em; }
+.goals { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px 22px 12px; margin: 26px 0 8px; }
+.goals b { display: block; font-size: var(--fs-1); color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.goals ul { margin: 0 0 6px; }
+.toc { margin: 18px 0 0; font-size: var(--fs-1); }
+.toc summary { cursor: pointer; color: var(--ink-2); font-weight: 600; list-style: none; display: inline-flex; gap: 8px; align-items: center; }
+.toc summary::-webkit-details-marker { display: none; }
+.toc summary::before { content: "▸"; color: var(--muted); transition: transform .2s; }
+.toc[open] summary::before { transform: rotate(90deg); }
+.toc ol { margin: 10px 0 0; padding-left: 1.6em; color: var(--ink-2); columns: 2 18rem; column-gap: 2rem; }
+.toc a { color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+/* ---------- article content ---------- */
+.article { padding-bottom: 40px; overflow-x: clip; overflow-clip-margin: 12px; }
+.article > * { max-width: var(--measure); margin-inline: auto; }
+.article > .wide, .article > .sim, .article > figure.wide, .article > .tbl-wrap.wide { max-width: var(--wide); }
+.article h2 { scroll-margin-top: calc(var(--top-h) + 16px); }
+.article h2 .anchor, .article h3 .anchor { opacity: 0; margin-left: 8px; color: var(--muted); text-decoration: none; font-weight: 400; }
+.article h2:hover .anchor, .article h3:hover .anchor { opacity: 1; }
+.lead-in { font-size: var(--fs-3); color: var(--ink-2); line-height: 1.65; }
+
+figure { margin: 2.2em auto; }
+.fig-box svg { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+figcaption b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.fig-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: clamp(12px, 2.4vw, 22px); overflow-x: auto; }
+
+.eq { margin: 1.6em auto; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r2); overflow-x: auto; text-align: center; }
+.eq mjx-container[display="true"] { margin: 0 !important; }
+.eq + p.where { font-size: var(--fs-1); color: var(--ink-2); margin-top: -0.6em; }
+mjx-container { color: inherit; }
+mjx-container[jax="SVG"] > svg { overflow: visible; }
+
+.tbl-wrap { overflow-x: auto; margin: 1.8em auto; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-1); line-height: 1.55; }
+th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-2); }
+thead th { background: var(--surface-2); color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl-caption { font-size: var(--fs-1); color: var(--ink-2); margin: -1.2em auto 1.8em; }
+
+.box { margin: 1.8em auto; padding: 16px 20px; background: var(--surface-2); border-radius: var(--r2); }
+.box > :last-child { margin-bottom: 0; }
+.box-t { font-weight: 700; display: block; margin-bottom: 4px; color: var(--ink); }
+.box.calc { background: var(--surface); border: 1px dashed var(--line); }
+.box.calc .box-t::before { content: "= "; color: var(--accent); }
+.box.field { background: var(--surface); border: 1px solid var(--line); }
+.box.warn { background: var(--rs-wash); }
+
+.try { margin: 0.8em auto 2.4em; font-size: var(--fs-1); color: var(--ink-2); }
+.try b { color: var(--ink); }
+.try ul { margin: 6px 0 0; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86em; font-weight: 600; padding: 0.05em 0.55em; border-radius: 999px; border: 1px solid currentColor; line-height: 1.6; white-space: nowrap; vertical-align: 0.06em; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.gs { color: var(--gs); }
+.chip.rs { color: var(--rs); }
+.chip.nir { color: var(--nir); }
+
+.sources { font-size: var(--fs-0); color: var(--muted); line-height: 1.6; }
+.sources ol { padding-left: 1.4em; }
+.sources a { color: var(--ink-2); }
+sup.ref a { text-decoration: none; font-size: 0.75em; padding: 0 1px; }
+
+/* ---------- simulation panel ---------- */
+.sim {
+  margin: 2.4em auto 0.8em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.sim-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.sim-tag { font-size: var(--fs-0); font-weight: 700; color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim-title { font-weight: 600; font-size: var(--fs-2); margin: 0; flex: 1 1 14rem; min-width: 0; line-height: 1.4; }
+.sim-tools { display: flex; gap: 6px; }
+.sim-body { padding: 16px; display: grid; gap: 14px; }
+.sim-views { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.sim-views.one { grid-template-columns: 1fr; }
+.sim-views.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.sim-views.quad { grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) { .sim-views.quad { grid-template-columns: 1fr; } }
+.view { position: relative; min-width: 0; }
+.view-l { font-size: var(--fs-0); color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+.view-l b { color: var(--ink-2); font-weight: 600; }
+.cv { display: block; width: 100%; border-radius: 8px; background: var(--surface-2); touch-action: pan-y; }
+.cv.scene { background: var(--scene); }
+.cv.grab { cursor: grab; touch-action: none; }
+.cv.grab:active { cursor: grabbing; }
+
+.ctls { display: grid; gap: 12px 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; }
+.ctl { display: grid; gap: 4px; min-width: 0; }
+.ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--fs-1); }
+.ctl-top label, .ctl-top span.l { color: var(--ink-2); }
+.ctl-top output { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.ctl select { font: inherit; font-size: var(--fs-1); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--surface-2); justify-self: start; max-width: 100%; }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: var(--fs-1); padding: 4px 12px; border-radius: 7px; cursor: pointer; line-height: 1.6; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); font-weight: 600; }
+.seg button[data-tone="gs"][aria-pressed="true"] { color: var(--gs); }
+.seg button[data-tone="rs"][aria-pressed="true"] { color: var(--rs); }
+.seg button[data-tone="nir"][aria-pressed="true"] { color: var(--nir); }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-1); color: var(--ink-2); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; margin: 0; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--accent) 0 var(--p, 50%), var(--surface-3) var(--p, 50%) 100%); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: var(--surface-3); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); margin-top: -7px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--fs-1); padding: 5px 12px; border-radius: 8px; cursor: pointer; line-height: 1.6; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+.reads { display: flex; flex-wrap: wrap; gap: 8px 10px; padding-top: 2px; }
+.read { background: var(--surface-2); border-radius: 8px; padding: 6px 12px; min-width: 7.5rem; flex: 1 1 7.5rem; }
+.read span { display: block; font-size: var(--fs-0); color: var(--muted); line-height: 1.4; }
+.read b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.5; font-size: var(--fs-1); }
+.read.hl { background: var(--accent-wash); }
+.read.warn { background: var(--rs-wash); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--fs-0); color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.sim-note { font-size: var(--fs-0); color: var(--muted); margin: 0; }
+
+/* ---------- quiz ---------- */
+.quiz-set { counter-reset: q; }
+.quiz { margin: 1.4em auto; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); }
+.quiz .q { font-weight: 600; margin: 0 0 10px; }
+.quiz .q::before { counter-increment: q; content: "Q" counter(q) ". "; color: var(--accent); }
+.quiz .opts { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.quiz .opts li { margin: 0; }
+.quiz .opt {
+  appearance: none; width: 100%; text-align: left; font: inherit; font-size: var(--fs-1); line-height: 1.55; color: var(--ink);
+  background: var(--surface-2); border: 1px solid transparent; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+  display: grid; grid-template-columns: 1.6em 1fr; gap: 4px;
+}
+.quiz .opt:hover { border-color: var(--line); }
+.quiz .opt .k { color: var(--muted); font-weight: 600; }
+.quiz .opt.correct { background: color-mix(in srgb, var(--good) 14%, var(--surface)); border-color: var(--good); }
+.quiz .opt.wrong { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: var(--bad); }
+.quiz .opt[disabled] { cursor: default; }
+.quiz .why { display: none; margin-top: 12px; font-size: var(--fs-1); color: var(--ink-2); border-top: 1px solid var(--line-2); padding-top: 10px; }
+.quiz.done .why { display: block; }
+.quiz .verdict { font-weight: 700; margin-right: 6px; }
+.quiz .verdict.ok { color: var(--good); }
+.quiz .verdict.no { color: var(--bad); }
+.score { margin: 1em auto; font-size: var(--fs-1); color: var(--ink-2); }
+
+.summary ol { counter-reset: s; list-style: none; padding: 0; }
+.summary li { counter-increment: s; position: relative; padding-left: 2.2em; margin: 0.7em 0; }
+.summary li::before { content: counter(s); position: absolute; left: 0; top: 0.1em; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent-wash); color: var(--accent); font-weight: 700; font-size: 0.85em; display: grid; place-items: center; }
+
+/* ---------- prev/next + footer ---------- */
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 56px auto 0; max-width: var(--measure); }
+.pager a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r2); text-decoration: none; color: var(--ink); background: var(--surface); line-height: 1.45; }
+.pager a:hover { border-color: var(--accent); }
+.pager span { display: block; font-size: var(--fs-0); color: var(--muted); }
+.pager .next { text-align: right; grid-column: 2; }
+.site-foot { margin-top: 72px; border-top: 1px solid var(--line); padding-block: 28px 48px; color: var(--muted); font-size: var(--fs-0); line-height: 1.7; }
+.site-foot .shell { display: grid; gap: 10px; }
+.site-foot a { color: var(--ink-2); }
+
+/* ---------- index page ---------- */
+.hero { padding-block: clamp(28px, 6vw, 64px) clamp(24px, 4vw, 40px); overflow-x: clip; }
+.hero-grid { display: grid; gap: clamp(24px, 4vw, 48px); grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; }
+.hero-kicker { color: var(--ink-2); font-size: var(--fs-1); margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hero h1 { font-size: clamp(2.3rem, 5.4vw, 4.1rem); line-height: 1.12; letter-spacing: -0.04em; font-weight: 700; margin: 0 0 24px; }
+.hero h1 .ln { display: block; white-space: nowrap; transition: transform .9s cubic-bezier(.2,.8,.15,1); will-change: transform; }
+.hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.9em); }
+.hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.8em); }
+.hero-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); max-width: 34rem; margin-bottom: 26px; }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-cta a { padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: var(--fs-1); }
+.hero-cta .go { background: var(--accent); color: var(--on-accent); }
+.hero-cta .go:hover { background: var(--accent-strong); color: var(--on-accent); }
+.hero-cta .alt { border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+.hero-cta .alt:hover { border-color: var(--muted); color: var(--ink); }
+.hero-lab { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
+.hero-lab .cv { aspect-ratio: 16 / 10; }
+.hero-lab-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.hero-lab-bar p { margin: 0; font-size: var(--fs-0); color: var(--muted); }
+.stats-strip { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 26px; font-size: var(--fs-1); color: var(--muted); }
+.stats-strip b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+.section { padding-block: clamp(36px, 6vw, 64px) 0; }
+.section-h { font-size: var(--fs-4); margin: 0 0 8px; }
+.section-sub { color: var(--ink-2); margin: 0 0 22px; max-width: var(--measure); }
+
+.spec { width: 100%; }
+.spec td:first-child { width: 9.5rem; font-weight: 700; font-size: var(--fs-2); color: var(--ink); white-space: nowrap; font-variant-numeric: normal; }
+.spec td:nth-child(2) { color: var(--ink-2); }
+.spec td:last-child { color: var(--muted); font-size: var(--fs-0); white-space: nowrap; }
+
+.chapters { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+.chapters li { margin: 0; }
+.chapters a { display: grid; grid-template-columns: 3rem minmax(0, 1fr); column-gap: 12px; height: 100%; padding: 16px 18px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-decoration: none; color: var(--ink); }
+.chapters a:hover { border-color: var(--accent); }
+.chapters .n { font-size: 1.55rem; line-height: 1.25; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.chapters h3 { margin: 0 0 4px; font-size: var(--fs-3); }
+.chapters p { margin: 0 0 8px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.chapters .meta { font-size: var(--fs-0); color: var(--muted); }
+.paths { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.path { padding: 16px 18px; border-radius: 12px; background: var(--surface-2); }
+.path h3 { margin: 0 0 4px; font-size: var(--fs-2); }
+.path p { margin: 0 0 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.path .hops { display: flex; flex-wrap: wrap; gap: 6px; }
+.path .hops a { font-size: var(--fs-0); font-weight: 600; padding: 3px 9px; border-radius: 6px; background: var(--surface); color: var(--ink); text-decoration: none; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.path .hops a:hover { border-color: var(--accent); color: var(--accent); }
+.howto { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.howto div { padding-top: 10px; border-top: 2px solid var(--line); }
+.howto b { display: block; margin-bottom: 4px; }
+.howto p { margin: 0; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+
+.glossary-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 1em auto; }
+.glossary-tools input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); flex: 1 1 16rem; min-width: 0; }
+dl.gloss { margin: 0 auto; }
+dl.gloss div { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--fs-1); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero h1 .ln { white-space: normal; }
+  .hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.6em); }
+  .hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.2em); }
+}
+@media (max-width: 560px) {
+  body { font-size: 1rem; line-height: 1.72; }
+  .brand small { display: none; }
+  .crumb { display: none; }
+  .sim-body { padding: 12px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager .next { grid-column: 1; }
+  .spec td:first-child { white-space: normal; width: auto; }
+  .spec td:last-child { white-space: normal; }
+  .goals { padding: 14px 16px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+  .topbar, .sim-tools, .pager { display: none; }
+}
+
+/* ---------- SVG figure vocabulary ---------- */
+.fig text { font-family: var(--font); fill: var(--ink-2); font-size: 13px; }
+.fig .t-s { font-size: 11.5px; fill: var(--muted); }
+.fig .t-b { font-weight: 600; fill: var(--ink); }
+.fig .t-gs { fill: var(--gs); font-weight: 600; }
+.fig .t-rs { fill: var(--rs); font-weight: 600; }
+.fig .t-nir { fill: var(--nir); font-weight: 600; }
+.fig .t-on { fill: #fff; font-weight: 600; }
+.fig .k-ink { fill: var(--ink); } .fig .k-ink2 { fill: var(--ink-2); } .fig .k-muted { fill: var(--muted); }
+.fig .k-surf { fill: var(--surface); } .fig .k-surf2 { fill: var(--surface-2); } .fig .k-surf3 { fill: var(--surface-3); } .fig .k-bg { fill: var(--bg); }
+.fig .k-gs { fill: var(--gs); } .fig .k-rs { fill: var(--rs); } .fig .k-nir { fill: var(--nir); }
+.fig .k-gsw { fill: var(--gs-wash); } .fig .k-rsw { fill: var(--rs-wash); } .fig .k-nirw { fill: var(--nir-wash); }
+.fig .k-r { fill: var(--ch-r); } .fig .k-g { fill: var(--ch-g); } .fig .k-b { fill: var(--ch-b); } .fig .k-ir { fill: var(--ch-ir); }
+.fig .k-line { fill: var(--line); } .fig .k-none { fill: none; }
+.fig .l-ink { stroke: var(--ink); fill: none; } .fig .l-ink2 { stroke: var(--ink-2); fill: none; } .fig .l-line { stroke: var(--line); fill: none; } .fig .l-muted { stroke: var(--muted); fill: none; }
+.fig .l-gs { stroke: var(--gs); fill: none; } .fig .l-rs { stroke: var(--rs); fill: none; } .fig .l-nir { stroke: var(--nir); fill: none; }
+.fig .l-surf { stroke: var(--surface); } .fig .l-bg { stroke: var(--bg); }
+.fig .w1 { stroke-width: 1; } .fig .w15 { stroke-width: 1.5; } .fig .w2 { stroke-width: 2; } .fig .w3 { stroke-width: 3; }
+.fig .dash { stroke-dasharray: 4 4; }
+.fig-pair { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.fig-pair > div { min-width: 0; }
+.fig-sub { font-size: var(--fs-1); font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 560px) {
+  .fig text { font-size: 17px; }
+  .fig .t-s { font-size: 15.5px; }
+  .spec td:last-child { display: none; }
+  .fig .m-hide { display: none; }
+  .fig-box svg.wide-svg { min-width: 640px; }
+  .fig text.wide-t { font-size: 15px; }
+}
+</style>
+<script>try{var t=localStorage.getItem('sb-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-slug="ir-gs">
+<main id="main" class="shell">
+  <header class="ch-head prose">
+    <div class="ch-label"><span class="ch-n">Chapter 06</span><span>시스템</span></div>
+    <h1>IR 조명과 글로벌 셔터</h1>
+    <p class="ch-lede">근적외선 카메라는 대개 혼자 일하지 않습니다. LED나 VCSEL로 장면을 직접 비추는 능동 조명과 짝을 이룹니다. 글로벌 셔터는 이 조명을 “노출 창에만” 켤 수 있게 해 주어, 같은 신호를 더 적은 평균 전력으로, 더 적은 주변광 속에서 얻게 합니다.</p>
+    <div class="goals"><b>이 장을 마치면</b>
+      <ul>
+        <li>펄스 조명을 롤링·글로벌 셔터에 맞추는 조건과 필요한 점등 시간을 계산할 수 있다.</li>
+        <li>노출·필터·출력으로 햇빛 대비 조명 신호와 SNR을 추정할 수 있다.</li>
+        <li>조명 켜짐/꺼짐 두 프레임 차분으로 주변광을 지우는 원리와 움직임 아티팩트를 설명할 수 있다.</li>
+        <li>시선 추적·얼굴 인증·깊이 센싱에서 GS와 NIR 조명이 함께 쓰이는 이유를 말할 수 있다.</li>
+      </ul>
+    </div>
+    <details class="toc" open></details>
+  </header>
+
+  <article class="article">
+    <h2>능동 조명: 신호를 직접 만든다</h2>
+    <p>어두운 차 안, 밤의 공장, 머리에 쓴 헤드셋 속 눈. 이런 곳에서는 장면의 빛을 기다리는 대신 카메라가 스스로 빛을 쏩니다. 사람 눈에 거슬리지 않는 850·940 nm LED나 VCSEL이 주로 쓰입니다. 조명이 만든 신호 전자 수는 조명의 세기, 거리, 물체의 반사율, 렌즈 밝기, 픽셀 면적, 조명이 켜진 시간으로 정해집니다.</p>
+    <div class="eq">\[ N_{\mathrm{sig}} = \eta\;\frac{\rho\,I_{\mathrm{LED}}/r^2}{4N^2}\;A_{\mathrm{pix}}\;t_{\mathrm{on,eff}}\;\frac{\lambda}{hc} \]</div>
+    <p class="where">\(I_{\mathrm{LED}}\)은 조명의 복사 세기(W/sr), \(r\)은 거리, \(\rho\)는 확산 반사율, \(N\)은 렌즈 F값, \(t_{\mathrm{on,eff}}\)는 노출 창과 조명이 겹친 시간입니다. 주변광도 같은 식을 따르되, 대역 필터를 통과한 햇빛 조도와 노출 시간 전체가 들어갑니다.</p>
+    <p>핵심은 마지막 항입니다. 조명 신호는 <em>노출과 조명이 겹친 시간</em>에만 쌓이지만, 주변광은 <em>노출 시간 전체</em> 동안 쌓입니다. 그러니 조명을 짧고 강하게, 노출을 그 펄스에 딱 맞추면 같은 평균 전력으로 주변광 대비 신호를 크게 올릴 수 있습니다. 이것이 스트로브(strobe) 촬영이고, 모든 픽셀이 같은 노출 창을 갖는 글로벌 셔터에서만 온전히 됩니다.</p>
+
+    <h2>스트로브 동기화: 롤링과 글로벌의 전력 차이</h2>
+    <p>롤링 셔터는 행마다 노출 창이 다르므로, 모든 행이 같은 양의 조명을 받으려면 조명을 첫 행의 노출 시작부터 마지막 행의 노출 끝까지 켜 두어야 합니다. 점등 시간은 \(t_{\mathrm{exp}} + T_{\mathrm{read}}\)가 되고, 그 대부분은 어떤 행의 노출 창에도 일부만 걸쳐 낭비됩니다. 글로벌 셔터는 노출 시간만큼만 켜면 됩니다.</p>
+    <div class="eq">\[ \frac{E_{\mathrm{LED}}^{\mathrm{RS}}}{E_{\mathrm{LED}}^{\mathrm{GS}}} = \frac{t_{\mathrm{exp}} + T_{\mathrm{read}}}{t_{\mathrm{exp}}} \]</div>
+    <div class="box calc"><span class="box-t">계산 예: 100 µs 노출, 20 ms 읽기</span>
+      <p>같은 신호를 얻는 데 롤링 셔터는 글로벌 셔터보다 (0.1 + 20) / 0.1 ≈ 200배의 조명 에너지가 필요합니다. 30 fps에서 글로벌 셔터의 조명 듀티는 0.3 %인데, 롤링 셔터는 60 %입니다. 배터리로 움직이는 헤드셋과 로봇, 발열이 문제인 차량 실내 카메라에서 이 차이는 결정적입니다.</p>
+    </div>
+    <section class="sim" id="sim-strobe" data-num="실험 6-1" data-title="스트로브 동기화와 조명 에너지"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>롤링 셔터에서 조명 펄스를 노출 시간만큼만 켜면 일부 행만 밝아집니다. 펄스 길이를 늘려 화면 전체가 밝아지는 순간의 에너지 비를 확인하세요.</li>
+        <li>글로벌 셔터에서는 펄스를 노출 창 안에 두기만 하면 됩니다. 펄스가 창을 벗어나면 신호가 줄어듭니다.</li>
+      </ul>
+    </div>
+
+    <h2>햇빛과 싸우기: 주변광 대비 신호</h2>
+    <p>야외에서는 햇빛이 가장 큰 적입니다. 대역 필터로 조명 파장 근처만 통과시키고, 노출을 펄스에 맞춰 짧게 하면 햇빛 신호는 노출 시간에 비례해 줄고 조명 신호는 펄스 에너지가 같은 한 그대로 유지됩니다. 펄스를 더 짧게 할 수 없는 지점은 조명의 최대 순간 출력이 정합니다. 아래 실험은 평균 출력과 최대 순간 출력을 함께 고려해 SNR을 계산합니다.</p>
+    <div class="eq">\[ \mathrm{SNR} = \frac{N_{\mathrm{sig}}}{\sqrt{N_{\mathrm{sig}} + N_{\mathrm{amb}} + \sigma_{\mathrm{read}}^2}}, \qquad N_{\mathrm{amb}} \propto E_{\mathrm{sun,band}}\, t_{\mathrm{exp}} \]</div>
+    <p class="where">주변광의 평균값은 조명 꺼짐 프레임으로 빼낼 수 있지만, 그 산탄 잡음 \(\sqrt{N_{\mathrm{amb}}}\)은 남습니다. 주변광을 줄이는 근본 방법은 노출을 줄이고 필터를 좁히는 것입니다.</p>
+    <section class="sim" id="sim-amb" data-num="실험 6-2" data-title="햇빛 아래 NIR 조명 SNR"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>맑은 날 직사광에서 노출을 10 ms에서 100 µs로 줄여 보세요. 글로벌 셔터의 SNR은 크게 오르지만 롤링 셔터는 거의 그대로입니다.</li>
+        <li>파장을 850 nm로 바꾸면 QE는 오르지만 햇빛도 늘어납니다. 거리를 늘려 두 파장의 SNR이 어떻게 갈리는지 보세요.</li>
+      </ul>
+    </div>
+
+    <h2>켜고 끄고 빼기: 두 프레임 차분</h2>
+    <p>조명을 한 프레임은 켜고(신호 + 주변광), 다음 프레임은 꺼서(주변광만) 두 장을 빼면 주변광이 지워진 순수한 조명 영상이 남습니다. 얼굴 인증 카메라, 제스처 센서, 여러 깊이 카메라가 이 방식을 씁니다. 문제는 두 프레임 사이에 물체가 움직이면 경계에 가짜 신호가 생긴다는 점입니다. 두 노출의 간격이 짧을수록 아티팩트가 작으므로, 일부 글로벌 셔터 센서는 두 노출을 수 µs 간격으로 연달아 찍는 모드를 제공합니다. 소니 Pregius S의 짧은 간격 셔터는 2 µs입니다.<sup class="ref"><a href="#ref-1">1</a></sup></p>
+    <section class="sim" id="sim-diff" data-num="실험 6-3" data-title="조명 켜짐 − 꺼짐 차분 영상"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>두 노출 간격을 일반 프레임 간격(33 ms)으로 두고 손을 빠르게 움직이면 차분 영상에 밝고 어두운 테두리가 생깁니다.</li>
+        <li>간격을 수십 µs로 줄이면 테두리가 사라집니다.</li>
+      </ul>
+    </div>
+
+    <h2>응용 1: 시선 추적</h2>
+    <p>AR·VR 헤드셋과 스마트 글래스는 눈 바로 앞의 작은 NIR 카메라로 눈동자를 추적합니다. NIR LED가 각막에 만드는 밝은 반사점(글린트)과 동공 중심의 상대 위치로 시선 방향을 계산합니다. 조명이 카메라 축과 같은 방향에서 오면 망막에서 반사된 빛 때문에 동공이 밝게(bright pupil), 축에서 벗어나 있으면 어둡게(dark pupil) 보입니다.</p>
+    <p>눈은 빠릅니다. 시선을 옮기는 순간의 단속 운동(saccade)은 수백 °/s에 이릅니다. 노출이 길면 동공과 글린트가 번져 위치 정확도가 떨어지고, 롤링 셔터라면 동공이 찌그러집니다. 그래서 시선 추적 카메라는 짧은 노출의 글로벌 셔터와 펄스 조명을 씁니다. OmniVision OG0TB(2.2 µm, 400×400, 940 nm 감도 강화)와 삼성 ISOCELL Vizion 931(640×640, 850 nm QE 60 %)이 이 용도를 겨냥한 대표 제품입니다.<sup class="ref"><a href="#ref-2">2</a>,<a href="#ref-3">3</a></sup></p>
+    <section class="sim" id="sim-eye" data-num="실험 6-4" data-title="시선 추적 카메라: 동공과 글린트"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>조명을 축 위/축 밖으로 바꿔 밝은 동공과 어두운 동공을 비교하세요.</li>
+        <li>눈 회전 속도를 600 °/s로 올리고 노출을 10 ms로 늘리면 글린트가 길게 번집니다. 롤링 셔터에서는 동공 모양까지 기웁니다.</li>
+      </ul>
+    </div>
+
+    <h2>응용 2: 깊이를 재는 세 가지 방법</h2>
+    <p>로봇과 얼굴 인증은 거리 정보가 필요합니다. NIR 조명과 글로벌 셔터는 세 가지 깊이 측정 방식 모두의 바탕입니다.</p>
+    <div class="tbl-wrap wide">
+      <table>
+        <thead><tr><th>방식</th><th>원리</th><th>센서</th><th>예</th></tr></thead>
+        <tbody>
+          <tr><td>능동 스테레오</td><td>점 패턴을 비추고 두 카메라의 시차로 삼각측량. 무늬 없는 벽에도 특징이 생긴다.</td><td>NIR 글로벌 셔터 카메라 두 대 (동기화)</td><td>RealSense D400 계열 (적외선 이미저 두 개와 패턴 프로젝터)<sup class="ref"><a href="#ref-4">4</a></sup></td></tr>
+          <tr><td>구조광</td><td>알려진 패턴의 변형으로 깊이 계산</td><td>NIR 카메라 한 대 + 패턴 프로젝터</td><td>근거리 얼굴 인증</td></tr>
+          <tr><td>간접 ToF (iToF)</td><td>변조된 빛의 위상 지연으로 거리 측정. 픽셀이 조명과 동기해 전하를 나눠 담는다.</td><td>전용 iToF 픽셀 (본질적으로 글로벌 노출)</td><td>onsemi Hyperlux ID (1.2 MP, 글로벌 셔터 iToF, 최대 30 m), 삼성 ISOCELL Vizion 63D (VGA, 940 nm)<sup class="ref"><a href="#ref-5">5</a>,<a href="#ref-3">3</a></sup></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>세 방식 모두 햇빛과의 싸움, 펄스 조명과의 동기화, 여러 카메라 사이의 정밀한 동기가 성패를 가릅니다. 8장에서 로봇의 관점으로 다시 다룹니다.</p>
+
+    <h2>핵심 정리</h2>
+    <div class="summary">
+      <ol>
+        <li>조명 신호는 노출 창과 조명이 겹친 시간에만, 주변광은 노출 시간 전체에 쌓인다. 짧고 강한 펄스에 노출을 맞추는 스트로브가 핵심 기법이다.</li>
+        <li>롤링 셔터로 화면 전체를 고르게 비추려면 조명을 \(t_{\mathrm{exp}} + T_{\mathrm{read}}\) 동안 켜야 해, 짧은 노출에서는 글로벌 셔터보다 수십~수백 배의 조명 에너지가 든다.</li>
+        <li>햇빛 아래에서는 좁은 대역 필터, 940 nm 선택, 짧은 노출이 SNR을 지킨다. 펄스 길이의 하한은 조명의 최대 순간 출력이 정한다.</li>
+        <li>조명 켜짐/꺼짐 프레임 차분은 주변광을 지우지만, 두 노출 사이의 움직임이 아티팩트를 만든다. 짧은 간격 이중 노출이 해법이다.</li>
+        <li>시선 추적, 능동 스테레오, 구조광, iToF는 모두 NIR 조명 + 글로벌 노출의 조합 위에 서 있다.</li>
+      </ol>
+    </div>
+
+    <h2>확인 퀴즈</h2>
+    <div class="quiz-set">
+      <div class="quiz" data-a="3">
+        <p class="q">노출 200 µs, 읽기 시간 10 ms인 롤링 셔터로 화면 전체를 고르게 비추려면 조명을 최소 얼마 동안 켜야 할까?</p>
+        <ol class="opts"><li>200 µs</li><li>5 ms</li><li>10.2 ms</li><li>20 ms</li></ol>
+        <div class="why">첫 행의 노출 시작부터 마지막 행의 노출 끝까지, \(t_{\mathrm{exp}} + T_{\mathrm{read}} = 10.2\) ms입니다. 글로벌 셔터라면 200 µs면 됩니다.</div>
+      </div>
+      <div class="quiz" data-a="1">
+        <p class="q">글로벌 셔터 스트로브 촬영에서 펄스 에너지를 그대로 두고 노출·펄스 길이를 1/10로 줄였다. 주변광 대비 조명 신호의 비는?</p>
+        <ol class="opts"><li>약 10배가 된다</li><li>변하지 않는다</li><li>1/10이 된다</li><li>√10배가 된다</li></ol>
+        <div class="why">조명 신호(펄스 에너지)는 그대로이고 주변광은 노출 시간에 비례해 1/10이 됩니다. 단, 조명의 순간 출력이 10배가 되어야 하므로 최대 출력이 한계를 정합니다.</div>
+      </div>
+      <div class="quiz" data-a="4">
+        <p class="q">조명 켜짐/꺼짐 두 프레임 차분 영상에서 움직이는 손 테두리에 밝고 어두운 띠가 생겼다. 가장 효과적인 개선은?</p>
+        <ol class="opts"><li>대역 필터를 넓힌다</li><li>조명 출력을 낮춘다</li><li>롤링 셔터로 바꾼다</li><li>두 노출의 시간 간격을 줄인다</li></ol>
+        <div class="why">두 노출 사이에 물체가 움직인 만큼 위치가 어긋나 생기는 아티팩트입니다. 간격을 µs 단위로 줄이면 사라집니다.</div>
+      </div>
+      <div class="quiz" data-a="2">
+        <p class="q">시선 추적 카메라에서 조명을 카메라 광축과 같은 방향에 두면 동공은 어떻게 보이는가?</p>
+        <ol class="opts"><li>어둡게 (dark pupil)</li><li>밝게 (bright pupil)</li><li>보이지 않는다</li><li>글린트와 구별되지 않는다</li></ol>
+        <div class="why">광축 위의 조명은 망막에서 되반사되어 카메라로 돌아오므로 동공이 밝게 빛납니다. 사진의 적목 현상과 같은 원리입니다.</div>
+      </div>
+    </div>
+
+    <div class="sources"><b>출처</b>
+      <ol>
+        <li id="ref-1"><a href="https://framos.com/en/sony-pregius-s-4-generation" rel="noopener">FRAMOS, Sony Pregius S 소개</a> — 2 µs short interval shutter.</li>
+        <li id="ref-2"><a href="https://www.ovt.com/products/og0tb" rel="noopener">OmniVision OG0TB 제품 페이지</a>.</li>
+        <li id="ref-3"><a href="https://news.samsung.com/global/tag/isocell-vizion-931" rel="noopener">Samsung Newsroom, ISOCELL Vizion 63D·931</a> (2023-12-19).</li>
+        <li id="ref-4"><a href="https://en.wikipedia.org/wiki/RealSense" rel="noopener">RealSense (Wikipedia)</a> — D400 계열 능동 스테레오, 2025년 인텔에서 분사.</li>
+        <li id="ref-5"><a href="https://www.businesswire.com/news/home/20250311656447/en" rel="noopener">onsemi Hyperlux ID 발표</a> (2025-03-11).</li>
+      </ol>
+    </div>
+  </article>
+  <nav class="pager" aria-label="챕터 이동"></nav>
+</main>
+<script>
+/* ShutterBook core: page chrome, theme, controls, canvas helpers, plotting, quiz. */
+(function () {
+  'use strict';
+  const SB = (window.SB = window.SB || {});
+  const root = document.documentElement;
+  const BASE = root.getAttribute('data-base') || '';
+
+  SB.CHAPTERS = [
+    { n: '01', slug: 'exposure', t: '노출의 시간 구조', d: '리셋 → 적분 → 읽기. 롤링과 글로벌 셔터는 이 세 동작의 타이밍이 다르다.', k: '타이밍 다이어그램 · 라인 시간 · 병렬 읽기' },
+    { n: '02', slug: 'rolling', t: '롤링 셔터 왜곡 실험실', d: '스큐, 젤로, 프로펠러, 플래시 밴드, LED 플리커를 직접 만들어 본다.', k: '왜곡 5종 시뮬레이터' },
+    { n: '03', slug: 'pixel', t: '글로벌 셔터 픽셀 해부', d: '4T 픽셀에서 출발해 전하 영역·전압 영역 GS 픽셀과 적층 구조까지.', k: '픽셀 동작 애니메이션 · 3D 적층 모델' },
+    { n: '04', slug: 'metrics', t: 'GS의 성능 지표', d: 'PLS(기생 광감도), 저장 노드 누설, kTC 노이즈, 저장 커패시터 설계.', k: 'PLS 고스트 · 커패시터 설계기 · PTC' },
+    { n: '05', slug: 'nir', t: '실리콘과 근적외선', d: '850·940 nm 빛은 실리콘 깊숙이 들어간다. 흡수 깊이와 QE, 광포획 구조.', k: '흡수 깊이 몬테카를로 · QE 계산기' },
+    { n: '06', slug: 'ir-gs', t: 'IR 조명과 글로벌 셔터', d: '능동 조명을 노출 창에 맞추면 무엇이 좋아지는가. 스트로브와 주변광 억제.', k: '스트로브 동기화 · 주변광 SNR · 시선 추적' },
+    { n: '07', slug: 'rgbir', t: 'RGB-IR 센서', d: '한 센서로 컬러와 NIR을 함께. 필터 배열, IR 누설 보정, 최신 하이브리드 셔터.', k: 'CFA 탐험기 · 분광 응답 · 처리 파이프라인' },
+    { n: '08', slug: 'physical-ai', t: 'Physical AI와 글로벌 셔터', d: '로봇·휴머노이드·자율주행이 왜 글로벌 셔터를 원하는가. VIO, 깊이, 동기화, 지연.', k: 'VIO 오차 · 지연 예산 · 스테레오 깊이' },
+    { n: '09', slug: 'landscape', t: '제품 지형도와 로드맵', d: '대표 GS·NIR·RGB-IR 센서를 한눈에. 픽셀 피치와 해상도, 적층 기술의 흐름.', k: '센서 지도 · 연표' },
+    { n: '10', slug: 'review', t: '종합 퀴즈와 용어집', d: '전체 내용을 점검하는 종합 퀴즈와 검색 가능한 용어집.', k: '퀴즈 20문항 · 용어 66개' }
+  ];
+  SB.base = BASE;
+
+  /* ---------------- theme ---------------- */
+  const THEME_KEY = 'sb-theme';
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  SB.isDark = function () {
+    const a = root.getAttribute('data-theme');
+    if (a) return a === 'dark';
+    return !!(mq && mq.matches);
+  };
+  function themeChanged() {
+    colorCache = null;
+    document.dispatchEvent(new CustomEvent('sb:theme'));
+  }
+  SB.setTheme = function (t) {
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+    else root.removeAttribute('data-theme');
+    try { if (t) localStorage.setItem(THEME_KEY, t); else localStorage.removeItem(THEME_KEY); } catch (e) { /* storage unavailable */ }
+    themeChanged();
+  };
+  if (mq) {
+    const h = () => { if (!root.getAttribute('data-theme')) themeChanged(); };
+    if (mq.addEventListener) mq.addEventListener('change', h); else if (mq.addListener) mq.addListener(h);
+  }
+
+  /* ---------------- colors ---------------- */
+  let colorCache = null;
+  SB.c = function (name) {
+    if (!colorCache) colorCache = {};
+    if (!(name in colorCache)) colorCache[name] = getComputedStyle(root).getPropertyValue('--' + name).trim() || '#888';
+    return colorCache[name];
+  };
+  SB.rgba = function (color, a) {
+    let c = color.trim();
+    if (c.startsWith('rgba')) return c.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgba($1,$2,$3,' + a + ')');
+    if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', ',' + a + ')');
+    if (c[0] === '#') {
+      if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+      const n = parseInt(c.slice(1, 7), 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    return c;
+  };
+  SB.mix = function (c1, c2, t) {
+    const p = (c) => { c = c.trim(); if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]; const n = parseInt(c.slice(1, 7), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+    const a = p(c1), b = p(c2);
+    return 'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',') + ')';
+  };
+  /* wavelength (nm) → approximate display colour; NIR shown as crimson by convention */
+  SB.waveColor = function (nm) {
+    if (nm >= 760) return SB.c('nir');
+    let r = 0, g = 0, b = 0;
+    if (nm < 440) { r = -(nm - 440) / 60; b = 1; }
+    else if (nm < 490) { g = (nm - 440) / 50; b = 1; }
+    else if (nm < 510) { g = 1; b = -(nm - 510) / 20; }
+    else if (nm < 580) { r = (nm - 510) / 70; g = 1; }
+    else if (nm < 645) { r = 1; g = -(nm - 645) / 65; }
+    else { r = 1; }
+    let f = 1;
+    if (nm < 420) f = 0.4 + 0.6 * (nm - 380) / 40; else if (nm > 700) f = 0.4 + 0.6 * (760 - nm) / 60;
+    const k = (v) => Math.round(255 * Math.pow(Math.max(0, v) * f, 0.8));
+    return 'rgb(' + k(r) + ',' + k(g) + ',' + k(b) + ')';
+  };
+
+  /* ---------------- numbers ---------------- */
+  SB.f = function (x, d) {
+    if (d === undefined) d = 2;
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  };
+  SB.fx = function (x, d) {
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: d });
+  };
+  SB.sig = function (x, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+    return SB.f(Number(x.toFixed(Math.min(d, 12))), d);
+  };
+  const PREF = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p'], [1e-15, 'f']];
+  SB.eng = function (x, unit, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0 ' + (unit || '');
+    const ax = Math.abs(x);
+    for (const [s, p] of PREF) {
+      if (ax >= s * 0.9995) return SB.sig(x / s, n || 3) + ' ' + p + (unit || '');
+    }
+    return SB.sig(x / 1e-15, n || 3) + ' f' + (unit || '');
+  };
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  SB.sci = function (x, d) {
+    if (!isFinite(x) || x === 0) return SB.f(x, d);
+    const e = Math.floor(Math.log10(Math.abs(x)));
+    const m = x / Math.pow(10, e);
+    const ms = Math.abs(m - 1) < 1e-9 && !d ? '' : SB.fx(m, d === undefined ? 1 : d) + '×';
+    return ms + '10' + String(e).split('').map((c) => SUP[c] || c).join('');
+  };
+  SB.clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  SB.lerp = (a, b, t) => a + (b - a) * t;
+  SB.interp = function (table, x) { /* table: [[x,y],...] ascending */
+    if (x <= table[0][0]) return table[0][1];
+    if (x >= table[table.length - 1][0]) return table[table.length - 1][1];
+    let lo = 0, hi = table.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (table[m][0] <= x) lo = m; else hi = m; }
+    const t = (x - table[lo][0]) / (table[hi][0] - table[lo][0]);
+    return table[lo][1] + t * (table[hi][1] - table[lo][1]);
+  };
+  SB.dB = (r) => 20 * Math.log10(r);
+
+  /* ---------------- random ---------------- */
+  SB.rng = function (seed) {
+    let a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  SB.gauss = function (r) {
+    let u = 0, v = 0;
+    while (u === 0) u = r();
+    while (v === 0) v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  SB.poisson = function (r, lam) {
+    if (lam <= 0) return 0;
+    if (lam > 40) return Math.max(0, Math.round(lam + Math.sqrt(lam) * SB.gauss(r)));
+    const L = Math.exp(-lam); let k = 0, p = 1;
+    do { k++; p *= r(); } while (p > L);
+    return k - 1;
+  };
+
+  /* ---------------- motion preference ---------------- */
+  SB.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ---------------- canvas ---------------- */
+  SB.canvas = function (cv, draw, opts) {
+    opts = opts || {};
+    const ctx = cv.getContext('2d');
+    const o = { cv: cv, ctx: ctx, w: 0, h: 0, dpr: 1 };
+    let lastW = -1;
+    function size(force) {
+      const w = Math.max(40, Math.round(cv.clientWidth || cv.parentElement.clientWidth || 300));
+      if (!force && w === lastW) return false;
+      lastW = w;
+      let asp = typeof opts.aspect === 'function' ? opts.aspect(w) : (opts.aspect || 1.6);
+      let h = opts.height ? (typeof opts.height === 'function' ? opts.height(w) : opts.height) : Math.round(w / asp);
+      if (opts.maxH) h = Math.min(h, opts.maxH);
+      if (opts.minH) h = Math.max(h, opts.minH);
+      cv.style.height = h + 'px';
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      o.w = w; o.h = h; o.dpr = dpr;
+      return true;
+    }
+    o.draw = function () {
+      ctx.setTransform(o.dpr, 0, 0, o.dpr, 0, 0);
+      ctx.clearRect(0, 0, o.w, o.h);
+      draw && draw(o);
+    };
+    o.resize = function () { size(true); o.draw(); };
+    size(true);
+    Promise.resolve().then(() => o.draw());
+    const target = cv.parentElement || cv;
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { if (size(false)) o.draw(); });
+      ro.observe(target);
+    } else {
+      window.addEventListener('resize', () => { if (size(false)) o.draw(); });
+    }
+    document.addEventListener('sb:theme', () => o.draw());
+    return o;
+  };
+
+  /* pointer helper: returns position in CSS px relative to canvas */
+  SB.pointer = function (cv, handlers) {
+    let down = false;
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    cv.addEventListener('pointerdown', (e) => { down = true; try { cv.setPointerCapture(e.pointerId); } catch (_) { } handlers.down && handlers.down(pos(e), e); });
+    cv.addEventListener('pointermove', (e) => { if (down) handlers.drag && handlers.drag(pos(e), e); else handlers.move && handlers.move(pos(e), e); });
+    const up = (e) => { if (!down) return; down = false; handlers.up && handlers.up(pos(e), e); };
+    cv.addEventListener('pointerup', up);
+    cv.addEventListener('pointercancel', up);
+    cv.addEventListener('pointerleave', (e) => { if (!down) handlers.leave && handlers.leave(e); });
+  };
+
+  /* ---------------- animation ---------------- */
+  SB.anim = function (el, step, opts) {
+    opts = opts || {};
+    let playing = opts.autoplay !== false && !SB.reduced;
+    let visible = false, raf = 0, last = 0;
+    const listeners = [];
+    function frame(t) {
+      raf = 0;
+      if (!playing || !visible) { last = 0; return; }
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt, t / 1000);
+      raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (playing && visible && !raf) raf = requestAnimationFrame(frame); }
+    if (window.IntersectionObserver) {
+      new IntersectionObserver((es) => { visible = es[0].isIntersecting; kick(); }, { rootMargin: '80px' }).observe(el);
+    } else { visible = true; kick(); }
+    const api = {
+      get playing() { return playing; },
+      play() { playing = true; last = 0; kick(); listeners.forEach((f) => f(true)); },
+      pause() { playing = false; listeners.forEach((f) => f(false)); },
+      toggle() { playing ? api.pause() : api.play(); },
+      onState(f) { listeners.push(f); },
+      step(dt) { step(dt || 1 / 60, performance.now() / 1000); }
+    };
+    return api;
+  };
+
+  /* ---------------- DOM helpers ---------------- */
+  SB.h = function (tag, attrs, html) {
+    const e = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  };
+  const ICON = {
+    play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"/></svg>',
+    reset: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-4.6 3H1.8A6.6 6.6 0 1 0 8 1.4V0L4.8 2.2 8 4.4z" fill="currentColor"/></svg>',
+    sun: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"/></g></svg>',
+    moon: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 1.2A6.8 6.8 0 1 0 14.8 11 5.6 5.6 0 0 1 10.8 1.2z" fill="currentColor"/></svg>',
+    menu: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+  SB.icon = ICON;
+
+  /* ---------------- sim frame ---------------- */
+  /* Builds the panel inside <section class="sim" id="..." data-num="..." data-title="...">.
+     spec.views: [{key, label, sub, aspect, cls, height, minH, maxH}]  spec.layout: 'one'|'two'|'' */
+  SB.frame = function (id, spec) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    spec = spec || {};
+    el.innerHTML = '';
+    const head = SB.h('div', { class: 'sim-head' });
+    head.appendChild(SB.h('span', { class: 'sim-tag', text: el.dataset.num || '실험' }));
+    head.appendChild(SB.h('h3', { class: 'sim-title', text: el.dataset.title || '' }));
+    const tools = SB.h('div', { class: 'sim-tools' });
+    head.appendChild(tools);
+    el.appendChild(head);
+    const body = SB.h('div', { class: 'sim-body' });
+    el.appendChild(body);
+    const views = {};
+    if (spec.views && spec.views.length) {
+      const vw = SB.h('div', { class: 'sim-views ' + (spec.layout || '') });
+      spec.views.forEach((v) => {
+        const box = SB.h('div', { class: 'view' });
+        if (v.label !== undefined) {
+          const lab = SB.h('div', { class: 'view-l' });
+          lab.innerHTML = '<b>' + v.label + '</b><span>' + (v.sub || '') + '</span>';
+          box.appendChild(lab);
+        }
+        const cv = SB.h('canvas', { class: 'cv ' + (v.cls || ''), role: 'img', 'aria-label': v.alt || v.label || '' });
+        box.appendChild(cv);
+        vw.appendChild(box);
+        views[v.key] = { box: box, cv: cv, label: box.querySelector('.view-l span'), spec: v };
+      });
+      body.appendChild(vw);
+    }
+    const ctls = SB.h('div', { class: 'ctls' });
+    const reads = SB.h('div', { class: 'reads' });
+    body.appendChild(ctls);
+    body.appendChild(reads);
+    const f = { el: el, body: body, views: views, ctls: ctls, reads: reads, tools: tools };
+    f.note = function (html) { const p = SB.h('p', { class: 'sim-note' }, html); body.appendChild(p); return p; };
+    f.legend = function (items, where) {
+      const lg = SB.h('div', { class: 'legend' });
+      lg.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+      (where || body).insertBefore(lg, ctls);
+      f._legend = lg; f._legendItems = items;
+      return lg;
+    };
+    f.refreshLegend = function () {
+      if (!f._legend) return;
+      const items = f._legendItems.map((it) => Object.assign({}, it, { c: typeof it.cf === 'function' ? it.cf() : it.c }));
+      f._legend.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+    };
+    document.addEventListener('sb:theme', () => f.refreshLegend());
+    f.playButton = function (anim) {
+      const b = SB.h('button', { class: 'btn', type: 'button' });
+      const sync = (p) => { b.innerHTML = (p ? ICON.pause + ' 일시정지' : ICON.play + ' 재생'); b.setAttribute('aria-pressed', p ? 'true' : 'false'); };
+      b.addEventListener('click', () => anim.toggle());
+      anim.onState(sync); sync(anim.playing);
+      tools.appendChild(b);
+      return b;
+    };
+    f.button = function (label, fn, cls) {
+      const b = SB.h('button', { class: 'btn ' + (cls || ''), type: 'button' }, label);
+      b.addEventListener('click', fn);
+      tools.appendChild(b);
+      return b;
+    };
+    return f;
+  };
+
+  /* ---------------- controls ---------------- */
+  let ctlSeq = 0;
+  SB.controls = function (container, specs, onChange) {
+    const v = {};
+    const api = { v: v, el: {}, set: null };
+    function emit(id) { onChange && onChange(v, id); }
+    specs.forEach((s) => {
+      const uid = 'c' + (++ctlSeq) + '-' + (s.id || 'x');
+      if (s.type === 'range' || !s.type) {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const top = SB.h('div', { class: 'ctl-top' });
+        const lab = SB.h('label', { for: uid }, s.label);
+        const out = SB.h('output', { for: uid });
+        top.appendChild(lab); top.appendChild(out);
+        const inp = SB.h('input', { type: 'range', id: uid });
+        const log = !!s.log;
+        const toPos = (x) => log ? Math.round(1000 * Math.log(x / s.min) / Math.log(s.max / s.min)) : x;
+        const fromPos = (p) => {
+          if (!log) return Number(p);
+          let x = s.min * Math.pow(s.max / s.min, p / 1000);
+          const m = Math.pow(10, Math.floor(Math.log10(x)) - 2);
+          return Math.round(x / m) * m;
+        };
+        if (log) { inp.min = 0; inp.max = 1000; inp.step = 1; }
+        else { inp.min = s.min; inp.max = s.max; inp.step = s.step || 'any'; }
+        const fmt = s.fmt || ((x) => SB.f(x, 3) + (s.unit ? ' ' + s.unit : ''));
+        const paint = () => { const p = (Number(inp.value) - Number(inp.min)) / (Number(inp.max) - Number(inp.min)) * 100; inp.style.setProperty('--p', p + '%'); };
+        const setVal = (x, silent) => { v[s.id] = x; inp.value = toPos(x); out.textContent = fmt(x); paint(); if (!silent) emit(s.id); };
+        inp.addEventListener('input', () => { v[s.id] = fromPos(inp.value); out.textContent = fmt(v[s.id]); paint(); emit(s.id); });
+        wrap.appendChild(top); wrap.appendChild(inp);
+        container.appendChild(wrap);
+        api.el[s.id] = { input: inp, out: out, set: setVal, wrap: wrap, refmt: () => { out.textContent = fmt(v[s.id]); } };
+        setVal(s.value, true);
+      } else if (s.type === 'seg') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        if (s.label) wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<span class="l">' + s.label + '</span>'));
+        const seg = SB.h('div', { class: 'seg', role: 'group', 'aria-label': s.label || s.id });
+        const btns = s.options.map((o) => {
+          const b = SB.h('button', { type: 'button', 'data-v': o.v }, o.t);
+          if (o.tone) b.dataset.tone = o.tone;
+          b.addEventListener('click', () => { setVal(o.v); });
+          seg.appendChild(b);
+          return b;
+        });
+        const setVal = (x, silent) => { v[s.id] = x; btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(x)))); if (!silent) emit(s.id); };
+        wrap.appendChild(seg);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, buttons: btns };
+        setVal(s.value, true);
+      } else if (s.type === 'select') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<label for="' + uid + '">' + s.label + '</label>'));
+        const sel = SB.h('select', { id: uid });
+        s.options.forEach((o) => { const op = SB.h('option', { value: o.v }, o.t); sel.appendChild(op); });
+        sel.addEventListener('change', () => { v[s.id] = sel.value; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = String(x); sel.value = String(x); if (!silent) emit(s.id); };
+        wrap.appendChild(sel);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, select: sel };
+        setVal(s.value, true);
+      } else if (s.type === 'check') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const lab = SB.h('label', { class: 'check' });
+        const inp = SB.h('input', { type: 'checkbox', id: uid });
+        lab.appendChild(inp); lab.appendChild(document.createTextNode(s.label));
+        inp.addEventListener('change', () => { v[s.id] = inp.checked; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = !!x; inp.checked = !!x; if (!silent) emit(s.id); };
+        wrap.appendChild(lab);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, input: inp };
+        setVal(s.value, true);
+      }
+    });
+    api.set = (id, x, silent) => api.el[id] && api.el[id].set(x, silent);
+    api.show = (id, on) => { if (api.el[id]) api.el[id].wrap.hidden = !on; };
+    return api;
+  };
+
+  /* ---------------- readouts ---------------- */
+  SB.reads = function (container, specs) {
+    const map = {};
+    specs.forEach((s) => {
+      const d = SB.h('div', { class: 'read' + (s.hl ? ' hl' : '') });
+      d.innerHTML = '<span>' + s.label + '</span><b>—</b>';
+      container.appendChild(d);
+      map[s.id] = d;
+    });
+    return {
+      set(id, text, state) {
+        const d = map[id]; if (!d) return;
+        d.querySelector('b').textContent = text;
+        d.classList.toggle('warn', state === 'warn');
+      },
+      el: map
+    };
+  };
+
+  /* ---------------- plotting ---------------- */
+  function niceStep(span, n) {
+    const raw = span / Math.max(1, n);
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const m = raw / p;
+    return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+  }
+  SB.ticks = function (a, b, n) {
+    const st = niceStep(b - a, n || 5);
+    const out = [];
+    for (let x = Math.ceil(a / st - 1e-9) * st; x <= b + st * 1e-6; x += st) out.push(Math.abs(x) < st * 1e-9 ? 0 : x);
+    return out;
+  };
+  SB.logTicks = function (a, b) {
+    const out = [];
+    for (let e = Math.floor(Math.log10(a)); e <= Math.ceil(Math.log10(b)); e++) {
+      const x = Math.pow(10, e);
+      if (x >= a * 0.999 && x <= b * 1.001) out.push(x);
+    }
+    return out;
+  };
+  SB.plot = function (o, box, opt) {
+    const ctx = o.ctx;
+    opt = Object.assign({ pad: [10, 12, 34, 46] }, opt || {});
+    const [pt, pr, pb, pl] = opt.pad;
+    const X0 = box.x + pl, X1 = box.x + box.w - pr, Y0 = box.y + pt, Y1 = box.y + box.h - pb;
+    const lx = (v) => opt.xlog ? Math.log10(v) : v;
+    const ly = (v) => opt.ylog ? Math.log10(v) : v;
+    const ax = lx(opt.xmin), bx = lx(opt.xmax), ay = ly(opt.ymin), by = ly(opt.ymax);
+    const p = {
+      x0: X0, x1: X1, y0: Y0, y1: Y1, ctx: ctx,
+      X: (v) => X0 + (lx(v) - ax) / (bx - ax) * (X1 - X0),
+      Y: (v) => Y1 - (ly(v) - ay) / (by - ay) * (Y1 - Y0),
+      invX: (px) => { const t = ax + (px - X0) / (X1 - X0) * (bx - ax); return opt.xlog ? Math.pow(10, t) : t; },
+      invY: (py) => { const t = ay + (Y1 - py) / (Y1 - Y0) * (by - ay); return opt.ylog ? Math.pow(10, t) : t; }
+    };
+    const font = '11px ' + SB.c('font').replace(/"/g, '"');
+    p.axes = function () {
+      ctx.save();
+      ctx.font = font;
+      ctx.lineWidth = 1;
+      const xt = opt.xticks || (opt.xlog ? SB.logTicks(opt.xmin, opt.xmax) : SB.ticks(opt.xmin, opt.xmax, opt.nx || Math.max(3, Math.round((X1 - X0) / 80))));
+      const yt = opt.yticks || (opt.ylog ? SB.logTicks(opt.ymin, opt.ymax) : SB.ticks(opt.ymin, opt.ymax, opt.ny || Math.max(3, Math.round((Y1 - Y0) / 45))));
+      ctx.strokeStyle = SB.c('line-2');
+      ctx.beginPath();
+      if (opt.grid !== false) {
+        yt.forEach((t) => { const y = Math.round(p.Y(t)) + 0.5; ctx.moveTo(X0, y); ctx.lineTo(X1, y); });
+        if (opt.xgrid) xt.forEach((t) => { const x = Math.round(p.X(t)) + 0.5; ctx.moveTo(x, Y0); ctx.lineTo(x, Y1); });
+      }
+      ctx.stroke();
+      ctx.strokeStyle = SB.c('line');
+      ctx.beginPath(); ctx.moveTo(X0, Math.round(Y1) + 0.5); ctx.lineTo(X1, Math.round(Y1) + 0.5); ctx.stroke();
+      if (opt.yaxisLine) { ctx.beginPath(); ctx.moveTo(Math.round(X0) + 0.5, Y0); ctx.lineTo(Math.round(X0) + 0.5, Y1); ctx.stroke(); }
+      ctx.fillStyle = SB.c('muted');
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const xf = opt.xfmt || ((t) => SB.f(t, 3));
+      const yf = opt.yfmt || ((t) => SB.f(t, 3));
+      xt.forEach((t) => ctx.fillText(xf(t), p.X(t), Y1 + 6));
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      yt.forEach((t) => ctx.fillText(yf(t), X0 - 6, p.Y(t)));
+      if (opt.xlabel) { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlabel, (X0 + X1) / 2, box.y + box.h - 1); }
+      if (opt.ylabel) { ctx.save(); ctx.translate(box.x + 10, (Y0 + Y1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(opt.ylabel, 0, 0); ctx.restore(); }
+      ctx.restore();
+      return p;
+    };
+    p.clip = function () { ctx.save(); ctx.beginPath(); ctx.rect(X0, Y0 - 1, X1 - X0, Y1 - Y0 + 2); ctx.clip(); };
+    p.unclip = function () { ctx.restore(); };
+    p.line = function (pts, color, width, dash) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = width || 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      let started = false;
+      pts.forEach((q) => {
+        if (q == null || !isFinite(q[1]) || !isFinite(q[0])) { started = false; return; }
+        const x = p.X(q[0]), y = p.Y(q[1]);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    };
+    p.area = function (pts, color, alpha, base) {
+      if (!pts.length) return;
+      ctx.save();
+      ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      ctx.beginPath();
+      const yb = p.Y(base == null ? Math.max(opt.ymin, opt.ylog ? opt.ymin : 0) : base);
+      ctx.moveTo(p.X(pts[0][0]), yb);
+      pts.forEach((q) => ctx.lineTo(p.X(q[0]), p.Y(q[1])));
+      ctx.lineTo(p.X(pts[pts.length - 1][0]), yb);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    };
+    p.band = function (x0, x1, color, alpha) {
+      ctx.save(); ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      const a = Math.max(X0, p.X(x0)), b = Math.min(X1, p.X(x1));
+      if (b > a) ctx.fillRect(a, Y0, b - a, Y1 - Y0);
+      ctx.restore();
+    };
+    p.vline = function (x, color, label, opts2) {
+      const xx = Math.round(p.X(x)) + 0.5;
+      if (xx < X0 - 1 || xx > X1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(xx, Y0); ctx.lineTo(xx, Y1); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'top'; ctx.textAlign = (xx > X1 - 60) ? 'right' : 'left'; ctx.fillText(label, xx + (xx > X1 - 60 ? -4 : 4), Y0 + 2 + ((opts2 && opts2.dy) || 0)); }
+      ctx.restore();
+    };
+    p.hline = function (y, color, label, opts2) {
+      const yy = Math.round(p.Y(y)) + 0.5;
+      if (yy < Y0 - 1 || yy > Y1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(X0, yy); ctx.lineTo(X1, yy); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'bottom'; ctx.textAlign = (opts2 && opts2.left) ? 'left' : 'right'; ctx.fillText(label, (opts2 && opts2.left) ? X0 + 4 : X1 - 4, yy - 3); }
+      ctx.restore();
+    };
+    p.dot = function (x, y, color, r) {
+      const xx = p.X(x), yy = p.Y(y);
+      ctx.save();
+      ctx.fillStyle = SB.c('surface'); ctx.beginPath(); ctx.arc(xx, yy, (r || 4.5) + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(xx, yy, r || 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    p.label = function (x, y, text, o2) {
+      o2 = o2 || {};
+      ctx.save(); ctx.font = (o2.bold ? '600 ' : '') + (o2.size || 11) + 'px ' + SB.c('font');
+      ctx.fillStyle = o2.color || SB.c('ink-2');
+      ctx.textAlign = o2.align || 'left'; ctx.textBaseline = o2.base || 'middle';
+      ctx.fillText(text, (o2.px ? x : p.X(x)) + (o2.dx || 0), (o2.py ? y : p.Y(y)) + (o2.dy || 0));
+      ctx.restore();
+    };
+    return p;
+  };
+  SB.font = function (size, weight) { return (weight ? weight + ' ' : '') + size + 'px ' + SB.c('font'); };
+  SB.text = function (ctx, s, x, y, o) {
+    o = o || {};
+    ctx.save();
+    ctx.font = SB.font(o.size || 12, o.weight);
+    ctx.fillStyle = o.color || SB.c('ink-2');
+    ctx.textAlign = o.align || 'left';
+    ctx.textBaseline = o.base || 'middle';
+    if (o.halo) { ctx.lineWidth = 4; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  };
+  SB.rrect = function (ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  };
+  SB.arrow = function (ctx, x0, y0, x1, y1, color, w, head) {
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    const a = Math.atan2(y1 - y0, x1 - x0), hs = head || 7;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hs * Math.cos(a - 0.4), y1 - hs * Math.sin(a - 0.4)); ctx.lineTo(x1 - hs * Math.cos(a + 0.4), y1 - hs * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  };
+
+  /* ---------------- quiz ---------------- */
+  function initQuiz() {
+    document.querySelectorAll('.quiz').forEach((qz) => {
+      const ans = Number(qz.dataset.a) - 1;
+      const items = Array.from(qz.querySelectorAll('.opts > li'));
+      const why = qz.querySelector('.why');
+      const keys = ['①', '②', '③', '④', '⑤'];
+      const btns = items.map((li, i) => {
+        const b = SB.h('button', { type: 'button', class: 'opt' });
+        b.innerHTML = '<span class="k">' + keys[i] + '</span><span>' + li.innerHTML + '</span>';
+        li.innerHTML = ''; li.appendChild(b);
+        b.addEventListener('click', () => {
+          if (qz.classList.contains('done')) return;
+          qz.classList.add('done');
+          btns.forEach((bb, j) => { bb.disabled = true; if (j === ans) bb.classList.add('correct'); });
+          const ok = i === ans;
+          if (!ok) b.classList.add('wrong');
+          qz.dataset.ok = ok ? '1' : '0';
+          if (why && !why.querySelector('.verdict')) {
+            const v = SB.h('span', { class: 'verdict ' + (ok ? 'ok' : 'no') }, ok ? '정답.' : '오답 — 정답은 ' + keys[ans] + '.');
+            why.insertBefore(v, why.firstChild);
+          }
+          const set = qz.closest('.quiz-set');
+          if (set) {
+            const all = set.querySelectorAll('.quiz');
+            const done = set.querySelectorAll('.quiz.done');
+            const good = set.querySelectorAll('.quiz[data-ok="1"]');
+            let sc = set.querySelector('.score');
+            if (!sc) { sc = SB.h('p', { class: 'score' }); set.appendChild(sc); }
+            sc.textContent = done.length + ' / ' + all.length + '문항 풀이 · ' + good.length + '개 정답' + (done.length === all.length ? (good.length === all.length ? ' — 모두 맞혔습니다.' : ' — 틀린 문항의 해설을 다시 읽어 보세요.') : '');
+          }
+        });
+        return b;
+      });
+    });
+  }
+
+  /* ---------------- page chrome ---------------- */
+  function chrome() {
+    const slug = document.body.dataset.slug || '';
+    const idx = SB.CHAPTERS.findIndex((c) => c.slug === slug);
+    const ch = idx >= 0 ? SB.CHAPTERS[idx] : null;
+    const home = BASE + 'index.html';
+    const chapHref = (c) => BASE + c.slug + '.html';
+
+    // top bar
+    const top = SB.h('header', { class: 'topbar' });
+    top.innerHTML =
+      '<div class="topbar-in">' +
+      '<a class="brand" href="' + home + '" aria-label="ShutterBook 처음으로"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>ShutterBook <small>글로벌 셔터 교과서</small></a>' +
+      '<span class="crumb">' + (ch ? '<b>' + ch.n + '</b> ' + ch.t : '') + '</span>' +
+      '<div class="top-actions">' +
+      '<button class="icon-btn" type="button" data-act="theme" aria-label="밝기 테마 전환"></button>' +
+      '<button class="icon-btn" type="button" data-act="menu" aria-label="챕터 목록 열기">' + ICON.menu + '<span>목차</span></button>' +
+      '</div></div><div class="progress" aria-hidden="true"></div>';
+    document.body.insertBefore(top, document.body.firstChild);
+    const skip = SB.h('a', { class: 'skip', href: '#main' }, '본문으로 건너뛰기');
+    document.body.insertBefore(skip, top);
+
+    const themeBtn = top.querySelector('[data-act="theme"]');
+    const paintTheme = () => { themeBtn.innerHTML = SB.isDark() ? ICON.sun : ICON.moon; themeBtn.setAttribute('aria-label', SB.isDark() ? '밝은 화면으로 전환' : '어두운 화면으로 전환'); };
+    paintTheme();
+    document.addEventListener('sb:theme', paintTheme);
+    themeBtn.addEventListener('click', () => SB.setTheme(SB.isDark() ? 'light' : 'dark'));
+
+    // drawer
+    const dr = SB.h('div', { class: 'drawer', id: 'chapter-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': '챕터 목록' });
+    dr.innerHTML = '<div class="drawer-panel"><div class="drawer-head"><b>전체 챕터</b><button class="icon-btn" type="button" data-act="close" aria-label="닫기">' + ICON.close + '</button></div><ol>' +
+      '<li><a href="' + home + '"' + (!ch ? ' aria-current="page"' : '') + '><span>·</span><span>처음 페이지</span></a></li>' +
+      SB.CHAPTERS.map((c) => '<li><a href="' + chapHref(c) + '"' + (ch && c.slug === ch.slug ? ' aria-current="page"' : '') + '><span>' + c.n + '</span><span>' + c.t + '</span></a></li>').join('') + '</ol></div>';
+    document.body.appendChild(dr);
+    const menuBtn = top.querySelector('[data-act="menu"]');
+    const open = () => { dr.classList.add('open'); const a = dr.querySelector('[aria-current]') || dr.querySelector('a'); a && a.focus(); };
+    const close = () => { dr.classList.remove('open'); menuBtn.focus(); };
+    menuBtn.addEventListener('click', open);
+    dr.addEventListener('click', (e) => { if (e.target === dr || e.target.closest('[data-act="close"]')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dr.classList.contains('open')) close(); });
+
+    // progress
+    const bar = top.querySelector('.progress');
+    const art = document.querySelector('.article') || document.querySelector('main');
+    const onScroll = () => {
+      if (!art) return;
+      const r = art.getBoundingClientRect();
+      const total = r.height - window.innerHeight * 0.6;
+      const p = SB.clamp((-r.top + 60) / Math.max(1, total), 0, 1);
+      bar.style.width = (p * 100).toFixed(2) + '%';
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // headings: ids + anchors + toc
+    const hs = Array.from(document.querySelectorAll('.article h2'));
+    hs.forEach((h, i) => {
+      if (!h.id) h.id = 's' + (i + 1);
+      const a = SB.h('a', { class: 'anchor', href: '#' + h.id, 'aria-label': '이 절의 링크' }, '#');
+      h.appendChild(a);
+    });
+    const toc = document.querySelector('.toc');
+    if (toc && hs.length) {
+      toc.innerHTML = '<summary>이 장의 구성 (' + hs.length + '절)</summary><ol>' + hs.map((h) => '<li><a href="#' + h.id + '">' + h.firstChild.textContent + '</a></li>').join('') + '</ol>';
+    }
+
+    // pager
+    const pg = document.querySelector('.pager');
+    if (pg && ch) {
+      const prev = SB.CHAPTERS[idx - 1], next = SB.CHAPTERS[idx + 1];
+      pg.innerHTML =
+        (prev ? '<a class="prev" href="' + chapHref(prev) + '"><span>이전 · ' + prev.n + '</span>' + prev.t + '</a>' : '<a class="prev" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>') +
+        (next ? '<a class="next" href="' + chapHref(next) + '"><span>다음 · ' + next.n + '</span>' + next.t + '</a>' : '<a class="next" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>');
+    }
+
+    // footer
+    const ft = SB.h('footer', { class: 'site-foot' });
+    ft.innerHTML = '<div class="shell"><div><b>ShutterBook</b> · 글로벌 셔터 CMOS 이미지 센서를 시뮬레이터로 배우는 인터랙티브 교과서. <a href="https://sensorbook.euiyun.com/" rel="noopener">SensorBook</a>의 구성 방식을 본떠 만들었습니다.</div>' +
+      '<div>시뮬레이터는 개념 이해를 위한 단순화 모델입니다. 제품 수치는 각 장 끝의 출처(제조사 발표·학회 논문)를 따르며, 실제 설계에는 데이터시트를 확인하세요.</div></div>';
+    document.body.appendChild(ft);
+  }
+
+  /* ---------------- MathJax ---------------- */
+  function math() {
+    if (!document.querySelector('.eq, .m')) return;
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global', scale: 1.0 },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'canvas'] }
+    };
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js';
+    s.async = true;
+    s.id = 'MathJax-script';
+    document.head.appendChild(s);
+  }
+
+  SB.ready = function (fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  };
+  SB.ready(function () {
+    chrome();
+    initQuiz();
+    math();
+  });
+})();
+</script>
+<script>
+/* Reference data
+   siAlpha: absorption coefficient of intrinsic Si at 300 K [nm, 1/cm] — M. A. Green, Sol. Energy Mater. Sol. Cells 92 (2008), via refractiveindex.info (CC0).
+   am15g: ASTM G173-03 global tilt solar spectral irradiance [nm, W/m²/nm], resampled to 5 nm (data file distributed with pvlib). */
+(function () {
+  const SB = (window.SB = window.SB || {});
+  SB.DATA = SB.DATA || {};
+  SB.DATA.siAlpha = [[300,1773500],[310,1458500],[320,1297100],[330,1180500],[340,1100300],[350,1054900],[360,1035300],[370,737340],[380,312840],[390,143390],[400,92991],[410,69575],[420,52659],[430,40329],[440,30559],[450,24100],[460,19500],[470,16600],[480,14400],[490,12600],[500,11100],[510,9700],[520,8800],[530,7850],[540,7050],[550,6390],[560,5780],[570,5320],[580,4880],[590,4490],[600,4175],[610,3800],[620,3520],[630,3280],[640,3030],[650,2790],[660,2570],[670,2390],[680,2200],[690,2040],[700,1890],[710,1780],[720,1680],[730,1540],[740,1420],[750,1310],[760,1190],[770,1100],[780,1030],[790,928],[800,850],[810,775],[820,707],[830,647],[840,590],[850,534],[860,479],[870,431],[880,383],[890,343],[900,303],[910,271],[920,240],[930,209],[940,183],[950,156],[960,134],[970,113],[980,96],[990,79],[1000,64],[1010,51.1],[1020,39.9],[1030,30.2],[1040,22.6],[1050,16.3],[1060,11.1],[1070,8.0],[1080,6.2],[1090,4.7],[1100,3.5],[1110,2.7],[1120,2.0],[1130,1.5],[1140,1.0],[1150,0.68]];
+  SB.DATA.am15g = [[350,0.528],[355,0.611],[360,0.598],[365,0.624],[370,0.755],[375,0.589],[380,0.701],[385,0.674],[390,0.797],[395,0.808],[400,1.114],[405,1.151],[410,1.049],[415,1.226],[420,1.123],[425,1.249],[430,0.875],[435,1.245],[440,1.35],[445,1.462],[450,1.56],[455,1.522],[460,1.529],[465,1.535],[470,1.508],[475,1.619],[480,1.618],[485,1.568],[490,1.622],[495,1.649],[500,1.545],[505,1.564],[510,1.548],[515,1.531],[520,1.524],[525,1.578],[530,1.545],[535,1.554],[540,1.483],[545,1.544],[550,1.54],[555,1.563],[560,1.474],[565,1.52],[570,1.482],[575,1.478],[580,1.502],[585,1.532],[590,1.371],[595,1.431],[600,1.475],[605,1.49],[610,1.469],[615,1.47],[620,1.474],[625,1.403],[630,1.392],[635,1.446],[640,1.434],[645,1.457],[650,1.359],[655,1.35],[660,1.399],[665,1.421],[670,1.42],[675,1.396],[680,1.397],[685,1.375],[690,1.182],[695,1.271],[700,1.282],[705,1.321],[710,1.318],[715,1.259],[720,0.986],[725,1.038],[730,1.129],[735,1.218],[740,1.22],[745,1.25],[750,1.234],[755,1.238],[760,0.266],[765,0.686],[770,1.161],[775,1.177],[780,1.164],[785,1.159],[790,1.091],[795,1.093],[800,1.073],[805,1.055],[810,1.056],[815,0.895],[820,0.862],[825,0.969],[830,0.916],[835,1.003],[840,1.016],[845,1.017],[850,0.894],[855,0.913],[860,0.988],[865,0.963],[870,0.968],[875,0.927],[880,0.94],[885,0.944],[890,0.924],[895,0.814],[900,0.743],[905,0.817],[910,0.625],[915,0.678],[920,0.744],[925,0.711],[930,0.432],[935,0.251],[940,0.472],[945,0.368],[950,0.147],[955,0.341],[960,0.421],[965,0.504],[970,0.635],[975,0.59],[980,0.605],[985,0.688],[990,0.732],[995,0.752],[1000,0.735],[1005,0.682],[1010,0.719],[1015,0.708],[1020,0.699],[1025,0.698],[1030,0.691],[1035,0.682],[1040,0.672],[1045,0.665],[1050,0.655],[1055,0.649],[1060,0.636],[1065,0.629],[1070,0.605],[1075,0.593],[1080,0.597],[1085,0.593],[1090,0.556],[1095,0.521],[1100,0.486],[1105,0.506],[1110,0.479],[1115,0.25],[1120,0.142],[1125,0.144],[1130,0.071],[1135,0.016],[1140,0.256],[1145,0.146],[1150,0.122]];
+  /* log-interpolated absorption coefficient [1/µm] */
+  SB.alphaSi = function (nm) {
+    const t = SB.DATA.siAlpha;
+    if (nm <= t[0][0]) return t[0][1] * 1e-4;
+    if (nm >= t[t.length - 1][0]) return t[t.length - 1][1] * 1e-4;
+    let i = 0; while (t[i + 1][0] < nm) i++;
+    const a = t[i], b = t[i + 1], u = (nm - a[0]) / (b[0] - a[0]);
+    return Math.exp(Math.log(a[1]) + u * (Math.log(b[1]) - Math.log(a[1]))) * 1e-4;
+  };
+  /* simple mono-pixel QE model: (1-R)(1-exp(-alpha d F)) with shallow surface loss for blue */
+  SB.qeSi = function (nm, d, F, R) {
+    const a = SB.alphaSi(nm);
+    const surf = Math.exp(-0.012 * a); // recombination loss of carriers born within ~nm of the back surface
+    return (1 - (R == null ? 0.06 : R)) * (1 - Math.exp(-a * d * (F || 1))) * surf;
+  };
+})();
+</script>
+<script>
+/* Chapter 06 — NIR illumination & global shutter */
+SB.ready(function () {
+  const us = (x) => (x >= 1000 ? SB.f(x / 1000, x >= 10000 ? 1 : 2) + ' ms' : SB.f(x, 0) + ' µs');
+  const shutterSeg = (val) => ({ id: 'mode', type: 'seg', label: '셔터 방식', value: val || 'gs', options: [{ v: 'rs', t: '롤링', tone: 'rs' }, { v: 'gs', t: '글로벌', tone: 'gs' }] });
+
+  /* ---------- 6-1 strobe synchronisation ---------- */
+  (function () {
+    const f = SB.frame('sim-strobe', { views: [{ key: 't', label: '노출 창과 조명 펄스', sub: '대표 16행', aspect: 1.3 }, { key: 'img', label: '조명만 받은 신호', sub: '흰 벽', cls: 'scene', aspect: 1.3 }], layout: 'two' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      shutterSeg('rs'),
+      { id: 'te', label: '노출 시간', min: 20, max: 20000, value: 100, log: true, fmt: us },
+      { id: 'tr', label: '읽기 시간', min: 2, max: 40, step: 0.5, value: 20, fmt: (v) => SB.f(v, 1) + ' ms' },
+      { id: 'pw', label: '조명 펄스 길이', min: 20, max: 45000, value: 100, log: true, fmt: us },
+      { id: 'ps', label: '펄스 시작', min: -2, max: 40, step: 0.05, value: 0, fmt: (v) => SB.f(v, 2) + ' ms' }
+    ], () => { t.draw(); img.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'full', label: '온전히 비춰진 행' }, { id: 'duty', label: '조명 듀티 (30 fps)' }, { id: 'en', label: '조명 에너지 (GS 최소 대비)', hl: true }, { id: 'need', label: '전체를 고르게 비추는 조건' }]);
+    const H = 160;
+    const win = (r) => { const v = ui.v, s = v.mode === 'rs' ? (r / H) * v.tr : 0; return [s, s + v.te / 1000]; };
+    const ov = (r) => { const v = ui.v, [a, b] = win(r), pa = v.ps, pb = v.ps + v.pw / 1000; return Math.max(0, Math.min(b, pb) - Math.max(a, pa)) / (v.te / 1000); };
+    const t = SB.canvas(f.views.t.cv, (o) => {
+      const v = ui.v, ctx = o.ctx;
+      const span = Math.max(v.mode === 'rs' ? v.tr + v.te / 1000 : v.te / 1000 * 3, v.ps + v.pw / 1000) * 1.1 + 0.05;
+      const x0 = Math.min(0, v.ps) - span * 0.03;
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: x0, xmax: span, ymin: -0.5, ymax: 15.5, yticks: [], pad: [12, 10, 34, 34], xlabel: '시간 (ms)', xfmt: (x) => SB.f(x, span < 2 ? 2 : 0) });
+      p.axes();
+      p.band(v.ps, v.ps + Math.max(v.pw / 1000, span / 300), SB.c('nir'), 0.22);
+      const col = SB.c(v.mode === 'rs' ? 'rs' : 'gs');
+      const bh = Math.min(12, (p.y1 - p.y0) / 16 * 0.6);
+      for (let k = 0; k < 16; k++) {
+        const r = Math.round((k * (H - 1)) / 15), [a, b] = win(r), y = p.Y(15 - k), fr = ov(r);
+        o.ctx.fillStyle = SB.rgba(col, 0.12 + 0.6 * fr); o.ctx.strokeStyle = col; o.ctx.lineWidth = 1.2;
+        SB.rrect(ctx, p.X(a), y - bh / 2, Math.max(2.5, p.X(b) - p.X(a)), bh, 2); ctx.fill(); ctx.stroke();
+      }
+      p.label(p.X(v.ps) + 4, p.y0 + 10, '조명 펄스', { px: true, py: true, color: SB.c('nir'), bold: true });
+    }, { aspect: 1.3 });
+    const img = SB.canvas(f.views.img.cv, (o) => {
+      const v = ui.v, ctx = o.ctx;
+      let full = 0;
+      for (let r = 0; r < H; r++) {
+        const fr = SB.clamp(ov(r), 0, 1); if (fr > 0.98) full++;
+        const L = 0.05 + 0.9 * fr;
+        ctx.fillStyle = 'rgb(' + Math.round(25 + 215 * L) + ',' + Math.round(25 + 200 * L) + ',' + Math.round(28 + 205 * L) + ')';
+        ctx.fillRect(0, (r / H) * o.h, o.w, o.h / H + 0.6);
+      }
+      SB.text(ctx, v.mode === 'rs' ? '롤링 셔터' : '글로벌 셔터', 10, 14, { size: 12, weight: 600, color: v.mode === 'rs' ? SB.c('rs') : SB.c('gs'), halo: 'rgba(0,0,0,0.6)' });
+      const need = v.mode === 'rs' ? v.te / 1000 + v.tr : v.te / 1000;
+      R.set('full', SB.f(full / H * 100, 0) + ' %');
+      R.set('duty', SB.f(Math.min(100, (v.pw / 1000) / 33.33 * 100), 2) + ' %');
+      R.set('en', '×' + SB.f((v.pw / 1000) / (v.te / 1000), 1));
+      R.set('need', '펄스 ≥ ' + us(need * 1000) + (v.mode === 'rs' ? ' (노출+읽기)' : ' (노출만)'));
+    }, { aspect: 1.3 });
+  })();
+
+  /* ---------- 6-2 SNR under sunlight ---------- */
+  (function () {
+    const f = SB.frame('sim-amb', { views: [{ key: 'c', label: 'SNR과 노출 시간', sub: '같은 평균 조명 전력', aspect: (w) => (w < 560 ? 1.15 : 2.2) }], layout: 'one' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'wl', type: 'seg', label: '조명 파장', value: '940', options: [{ v: '850', t: '850 nm', tone: 'nir' }, { v: '940', t: '940 nm', tone: 'nir' }] },
+      { id: 'sun', type: 'seg', label: '주변광', value: '1', options: [{ v: '1', t: '맑은 날 직사광' }, { v: '0.2', t: '흐린 날' }, { v: '0.02', t: '실내 창가' }, { v: '0', t: '밤' }] },
+      { id: 'te', label: '노출 = 펄스 길이 (GS)', min: 10, max: 20000, value: 200, log: true, fmt: us },
+      { id: 'bw', label: '대역 필터 폭', min: 10, max: 100, step: 1, value: 30, fmt: (v) => v + ' nm' },
+      { id: 'pavg', label: '조명 평균 광출력', min: 0.05, max: 3, value: 0.5, log: true, fmt: (v) => SB.f(v, 2) + ' W' },
+      { id: 'ppk', label: '조명 최대 순간 출력', min: 0.5, max: 20, value: 5, log: true, fmt: (v) => SB.f(v, 1) + ' W' },
+      { id: 'r', label: '물체 거리', min: 0.2, max: 10, value: 1.5, log: true, fmt: (v) => SB.f(v, 2) + ' m' },
+      { id: 'rho', label: '물체 반사율', min: 5, max: 90, step: 1, value: 40, fmt: (v) => v + ' %' }
+    ], () => view.draw());
+    const R = SB.reads(f.reads, [{ id: 'S', label: '조명 신호 (GS)' }, { id: 'A', label: '주변광 전자' }, { id: 'pk', label: '필요한 순간 출력' }, { id: 'gs', label: 'SNR · 글로벌', hl: true }, { id: 'rs', label: 'SNR · 롤링' }]);
+    const h = 6.62607015e-34, c = 2.99792458e8, N = 2, Apix = 9e-12, FPS = 30, TR = 0.015, RN = 3, HALF = 30 * Math.PI / 180;
+    const sunBand = (c0, w) => { let s = 0; const n = 60; for (let i = 0; i < n; i++) { const l = c0 - w / 2 + (i + 0.5) * w / n; s += SB.interp(SB.DATA.am15g, l) * w / n; } return s; };
+    function model(v, te, mode) {
+      const lam = +v.wl * 1e-9, Eph = h * c / lam, qe = SB.qeSi(+v.wl, 6, 3, 0.05);
+      const Ef = v.pavg / FPS;
+      const ton = mode === 'gs' ? te : te + TR;
+      const P = Math.min(v.ppk, Ef / ton);
+      const Omega = 2 * Math.PI * (1 - Math.cos(HALF));
+      const Escene = (P / Omega) / (v.r * v.r);
+      const rho = v.rho / 100;
+      const S = qe * (rho * Escene / (4 * N * N)) * Apix / Eph * te;
+      const Eamb = sunBand(+v.wl, v.bw) * (+v.sun);
+      const A = qe * (rho * Eamb / (4 * N * N)) * Apix / Eph * te;
+      const snr = S / Math.sqrt(S + A + RN * RN);
+      return { S, A, snr, P, qe };
+    }
+    const view = SB.canvas(f.views.c.cv, (o) => {
+      const v = ui.v;
+      const pts = (mode) => { const a = []; for (let lg = 1; lg <= Math.log10(20000) + 1e-9; lg += 0.02) { const te = Math.pow(10, lg); a.push([te, SB.dB(Math.max(1e-3, model(v, te * 1e-6, mode).snr))]); } return a; };
+      const g = pts('gs'), r = pts('rs');
+      const all = g.concat(r).map((q) => q[1]);
+      const ymax = Math.ceil((Math.max(...all) + 5) / 10) * 10, ymin = Math.max(-30, Math.floor((Math.min(...all) - 5) / 10) * 10);
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 10, xmax: 20000, ymin, ymax, xlog: true, pad: [14, 16, 34, 44], xlabel: '노출 시간 (µs)', xfmt: (t) => (t >= 1000 ? SB.f(t / 1000, 0) + 'ms' : SB.f(t, 0) + 'µs') });
+      p.axes();
+      SB.text(o.ctx, 'SNR (dB)', p.x0 + 4, p.y0 + 6, { size: 11, color: SB.c('muted') });
+      p.hline(20, SB.c('muted'), 'SNR 10 (20 dB)', { left: true });
+      p.line(r, SB.c('rs'), 2);
+      p.line(g, SB.c('gs'), 2.4);
+      const te = v.te * 1e-6, mg = model(v, te, 'gs'), mr = model(v, te, 'rs');
+      p.vline(v.te, SB.c('muted'));
+      p.dot(v.te, SB.dB(Math.max(1e-3, mg.snr)), SB.c('gs'), 5);
+      p.dot(v.te, SB.dB(Math.max(1e-3, mr.snr)), SB.c('rs'), 5);
+      p.label(g[g.length - 1][0], g[g.length - 1][1], '글로벌', { align: 'right', dx: -4, dy: -12, color: SB.c('ink-2'), bold: true });
+      p.label(r[r.length - 1][0], r[r.length - 1][1], '롤링', { align: 'right', dx: -4, dy: 12, color: SB.c('ink-2'), bold: true });
+      R.set('S', SB.f(mg.S, mg.S < 10 ? 1 : 0) + ' e⁻');
+      R.set('A', SB.f(mg.A, mg.A < 10 ? 1 : 0) + ' e⁻', mg.S + mg.A > 10000 ? 'warn' : null);
+      R.set('pk', SB.f(mg.P, 2) + ' W' + (mg.P >= v.ppk - 1e-9 ? ' (상한)' : ''));
+      R.set('gs', SB.f(SB.dB(Math.max(1e-3, mg.snr)), 1) + ' dB');
+      R.set('rs', SB.f(SB.dB(Math.max(1e-3, mr.snr)), 1) + ' dB');
+    }, { aspect: f.views.c.spec.aspect });
+    f.legend([{ t: '글로벌 셔터 (펄스 = 노출)', c: SB.c('gs'), cf: () => SB.c('gs') }, { t: '롤링 셔터 (노출 + 읽기 15 ms 동안 점등)', c: SB.c('rs'), cf: () => SB.c('rs') }]);
+    f.note('가정: 픽셀 3 µm, F/2, 30 fps, 조명 반각 30°, 실리콘 6 µm·광경로 ×3의 QE, 읽기 잡음 3 e⁻, 물체가 햇빛과 조명을 같은 반사율로 반사. 햇빛은 AM1.5G를 필터 대역에서 적분했습니다.');
+  })();
+
+  /* ---------- 6-3 on/off frame differencing ---------- */
+  (function () {
+    const f = SB.frame('sim-diff', { views: [{ key: 'on', label: '프레임 1 · 조명 켜짐', sub: '', cls: 'scene', aspect: 1.2 }, { key: 'off', label: '프레임 2 · 조명 꺼짐', sub: '', cls: 'scene', aspect: 1.2 }, { key: 'd', label: '차분 = 1 − 2', sub: '', cls: 'scene', aspect: 1.2 }] });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'v', label: '손 움직임 속도', min: 0, max: 3, step: 0.05, value: 1.2, fmt: (v) => SB.f(v, 2) + ' m/s' },
+      { id: 'dt', label: '두 노출 사이 간격', min: 2, max: 33333, value: 33333, log: true, fmt: us },
+      { id: 'amb', label: '주변광 세기', min: 0, max: 1, step: 0.01, value: 0.6, fmt: (v) => SB.f(v * 100, 0) + ' %' }
+    ], () => { calc(); va.draw(); vb.draw(); vc.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'dx', label: '두 노출 사이 손 이동' }, { id: 'art', label: '아티팩트 크기 (조명 신호 대비)', hl: true }]);
+    const W = 120, H = 96, PXM = 400; // px per metre at the hand
+    const A = new Float32Array(W * H), B = new Float32Array(W * H);
+    function scene(x, y, hx, led) {
+      const bg = 0.35 + 0.3 * (x / W) + 0.1 * Math.sin(y / 7);       // sunlit background (ambient only)
+      const dx = (x - hx) / 18, dy = (y - H * 0.55) / 30;
+      const hand = dx * dx + dy * dy < 1 || (Math.abs(x - hx - 4) < 6 && y > H * 0.7);
+      const amb = ui.v.amb;
+      if (hand) return 0.55 * amb + (led ? 0.55 : 0);
+      return bg * amb + (led ? 0.04 : 0);
+    }
+    function calc() {
+      const v = ui.v, shift = v.v * PXM * (v.dt * 1e-6);
+      const h1 = W * 0.42, h2 = h1 + shift;
+      let art = 0, cnt = 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const a = scene(x, y, h1, true), b = scene(x, y, h2, false), i = y * W + x;
+        A[i] = a; B[i] = b;
+        const ideal = scene(x, y, h1, true) - scene(x, y, h1, false);
+        art += Math.abs((a - b) - ideal); cnt += Math.abs(ideal) > 0.2 ? 1 : 0;
+      }
+      R.set('dx', SB.f(shift, 1) + ' px (' + SB.f(v.v * v.dt * 1e-3, 2) + ' mm)');
+      R.set('art', SB.f(art / Math.max(1, cnt) / 0.55 * 100, 1) + ' %', art / Math.max(1, cnt) > 0.05 ? 'warn' : null);
+    }
+    const off = document.createElement('canvas'); off.width = W; off.height = H;
+    const octx = off.getContext('2d'), id = octx.createImageData(W, H);
+    const blit = (fn) => (o) => {
+      const d = id.data;
+      for (let i = 0; i < W * H; i++) { const [r, g, b] = fn(i); d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255; }
+      octx.putImageData(id, 0, 0); o.ctx.imageSmoothingEnabled = true; o.ctx.drawImage(off, 0, 0, o.w, o.h);
+    };
+    const g = (x) => { const v = Math.round(255 * Math.pow(SB.clamp(x, 0, 1), 1 / 1.8)); return [v, v, v]; };
+    const va = SB.canvas(f.views.on.cv, blit((i) => g(A[i])), { aspect: 1.2 });
+    const vb = SB.canvas(f.views.off.cv, blit((i) => g(B[i])), { aspect: 1.2 });
+    const vc = SB.canvas(f.views.d.cv, blit((i) => {
+      const dd = A[i] - B[i];
+      if (dd >= 0) { const v = Math.round(255 * Math.pow(SB.clamp(dd / 0.7, 0, 1), 1 / 1.8)); return [v, v, v]; }
+      const m = SB.clamp(-dd / 0.5, 0, 1); return [Math.round(40 + 200 * m), Math.round(30 + 30 * m), Math.round(50 + 60 * m)];
+    }), { aspect: 1.2 });
+    f.note('차분 영상에서 붉은색은 음수(손이 떠난 자리의 주변광)입니다. 이상적인 차분은 조명을 받은 손만 밝게 남깁니다.');
+    calc();
+  })();
+
+  /* ---------- 6-4 eye tracking ---------- */
+  (function () {
+    const f = SB.frame('sim-eye', { views: [{ key: 'e', label: '눈 카메라 영상 (NIR)', sub: '400×400 중 일부', cls: 'scene', aspect: (w) => (w < 560 ? 1.3 : 2.2) }], layout: 'one' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'il', type: 'seg', label: '조명 위치', value: 'off', options: [{ v: 'on', t: '광축 위 (밝은 동공)' }, { v: 'off', t: '광축 밖 (어두운 동공)' }] },
+      shutterSeg('gs'),
+      { id: 'w', label: '눈 회전 속도', min: 0, max: 800, step: 10, value: 300, fmt: (v) => v + ' °/s' },
+      { id: 'te', label: '노출 시간', min: 50, max: 20000, value: 2000, log: true, fmt: us }
+    ], () => { calc(); view.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'rot', label: '노출 중 회전' }, { id: 'blur', label: '동공·글린트 번짐', hl: true }, { id: 'shear', label: '롤링 셔터 기울어짐' }]);
+    const W = 220, H = 100, PXD = 2.8, TREAD = 4; // px per degree, readout ms (400 rows @10 µs)
+    const buf = new Float32Array(W * H);
+    function eye(x, y, ex, gx) {
+      const cx = W * 0.5 + ex, cy = H * 0.52;
+      const lid = Math.abs(y - cy) < 34 * Math.sqrt(Math.max(0, 1 - Math.pow((x - W * 0.5) / 92, 2)));
+      if (!lid) return 0.62 + 0.05 * Math.sin(x / 9 + y / 13); // skin is bright in NIR
+      const r = Math.hypot(x - cx, y - cy);
+      let v = 0.78;                                   // sclera
+      if (r < 24) v = 0.42 + 0.08 * Math.sin(Math.atan2(y - cy, x - cx) * 9) * (r / 24); // iris
+      if (r < 10) v = ui.v.il === 'on' ? 0.95 : 0.04; // pupil
+      if (Math.hypot(x - (W * 0.5 + gx + 6), y - (cy - 6)) < 2.6) v = 1.4; // glint
+      return v;
+    }
+    function calc() {
+      const v = ui.v, te = v.te / 1000, K = 14;
+      for (let y = 0; y < H; y++) {
+        const t0 = v.mode === 'rs' ? (y / H) * TREAD : 0;
+        for (let x = 0; x < W; x++) {
+          let s = 0;
+          for (let k = 0; k < K; k++) {
+            const t = t0 + ((k + 0.5) / K) * te;          // ms
+            const deg = v.w * (t / 1000) - v.w * te / 2000;  // centred on mid-exposure
+            s += eye(x + 0.5, y + 0.5, deg * PXD, deg * PXD * 0.5);
+          }
+          buf[y * W + x] = s / K;
+        }
+      }
+      R.set('rot', SB.f(v.w * te / 1000, 2) + '°');
+      R.set('blur', SB.f(v.w * te / 1000 * PXD, 1) + ' px', v.w * te / 1000 * PXD > 3 ? 'warn' : null);
+      R.set('shear', v.mode === 'rs' ? SB.f(v.w * TREAD / 1000 * PXD, 1) + ' px (읽기 4 ms)' : '없음');
+    }
+    const off = document.createElement('canvas'); off.width = W; off.height = H;
+    const octx = off.getContext('2d'), id = octx.createImageData(W, H);
+    const view = SB.canvas(f.views.e.cv, (o) => {
+      const d = id.data;
+      for (let i = 0; i < W * H; i++) { const v = Math.round(255 * Math.pow(SB.clamp(buf[i], 0, 1), 1 / 1.6)); d[i * 4] = v; d[i * 4 + 1] = v; d[i * 4 + 2] = v; d[i * 4 + 3] = 255; }
+      octx.putImageData(id, 0, 0);
+      o.ctx.imageSmoothingEnabled = true;
+      const s = Math.min(o.w / W, o.h / H), dw = W * s, dh = H * s;
+      o.ctx.fillStyle = '#0B1011'; o.ctx.fillRect(0, 0, o.w, o.h);
+      o.ctx.drawImage(off, (o.w - dw) / 2, (o.h - dh) / 2, dw, dh);
+    }, { aspect: f.views.e.spec.aspect });
+    f.note('가정: 눈 1° 회전 ≈ 영상에서 2.8 px(눈과 카메라 약 3 cm, 400×400 센서), 글린트는 동공의 절반 속도로 움직인다고 근사했습니다.');
+    calc();
+  })();
+});
+</script>
+</body>
+</html>

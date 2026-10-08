@@ -1,0 +1,1711 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GS의 성능 지표 · ShutterBook</title>
+<meta name="description" content="기생 광감도(PLS)와 셔터 효율, 저장 노드 누설과 셰이딩, 전압 영역 GS의 저장 커패시터 설계(kTC·누설 요구치), 광자 전달 곡선과 다이내믹 레인지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%230F1A1C%22/%3E%3Cg%20fill%3D%22%231FB5A6%22%3E%3Crect%20x%3D%226%22%20y%3D%227%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2212.2%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2217.4%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2222.6%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ShutterBook — 글로벌 셔터 이미지 센서 교과서
+   Layout concept: one reading column (≈42rem) with lab panels that break out to the wide track.
+   Color carries meaning: teal = global shutter, amber = rolling shutter, crimson = near-infrared. */
+
+:root {
+  --bg: #F3F6F6;
+  --surface: #FFFFFF;
+  --surface-2: #EAF0F0;
+  --surface-3: #DCE5E5;
+  --ink: #0F1A1C;
+  --ink-2: #3D4E53;
+  --muted: #627378;
+  --line: #CFD9DA;
+  --line-2: #E2E9EA;
+  --accent: #007A70;
+  --accent-strong: #005E56;
+  --accent-wash: rgba(0, 122, 112, 0.09);
+  --on-accent: #FFFFFF;
+
+  /* semantic encodings (validated as a set, light surface) */
+  --gs: #008A7E;
+  --rs: #C26A00;
+  --nir: #B4144E;
+  --gs-wash: rgba(0, 138, 126, 0.12);
+  --rs-wash: rgba(194, 106, 0, 0.13);
+  --nir-wash: rgba(180, 20, 78, 0.11);
+
+  /* colour-filter channels */
+  --ch-r: #D23A3A;
+  --ch-g: #2B8C45;
+  --ch-b: #2F5BD3;
+  --ch-ir: #5E1A3D;
+
+  --good: #1C7C35;
+  --bad: #B3261E;
+  --scene: #0E1416;          /* backdrop of simulated scenes */
+  --scene-ink: #E9F1F1;
+
+  --shadow: 0 1px 2px rgba(15, 26, 28, 0.05), 0 6px 20px rgba(15, 26, 28, 0.05);
+
+  --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --fs-0: 0.8125rem;
+  --fs-1: 0.9375rem;
+  --fs-2: 1.0625rem;
+  --fs-3: 1.25rem;
+  --fs-4: 1.5625rem;
+  --fs-5: 2.0rem;
+  --fs-6: 2.75rem;
+
+  --measure: 42rem;
+  --wide: 70rem;
+  --gutter: clamp(16px, 4vw, 40px);
+  --r1: 6px;
+  --r2: 10px;
+  --top-h: 56px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1213;
+    --surface: #111A1C;
+    --surface-2: #172326;
+    --surface-3: #203034;
+    --ink: #E2ECEC;
+    --ink-2: #A7B9BC;
+    --muted: #7A8E92;
+    --line: #26363A;
+    --line-2: #1C2A2D;
+    --accent: #3CC2B4;
+    --accent-strong: #6ED8CC;
+    --accent-wash: rgba(60, 194, 180, 0.12);
+    --on-accent: #04201D;
+    --gs: #1F9E92;
+    --rs: #C97E12;
+    --nir: #E8487A;
+    --gs-wash: rgba(31, 158, 146, 0.18);
+    --rs-wash: rgba(201, 126, 18, 0.18);
+    --nir-wash: rgba(232, 72, 122, 0.16);
+    --ch-r: #F06363;
+    --ch-g: #45B86A;
+    --ch-b: #6B92FF;
+    --ch-ir: #B9467E;
+    --good: #46C46A;
+    --bad: #FF7A70;
+    --scene: #070B0C;
+    --scene-ink: #E9F1F1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0B1213;
+  --surface: #111A1C;
+  --surface-2: #172326;
+  --surface-3: #203034;
+  --ink: #E2ECEC;
+  --ink-2: #A7B9BC;
+  --muted: #7A8E92;
+  --line: #26363A;
+  --line-2: #1C2A2D;
+  --accent: #3CC2B4;
+  --accent-strong: #6ED8CC;
+  --accent-wash: rgba(60, 194, 180, 0.12);
+  --on-accent: #04201D;
+  --gs: #1F9E92;
+  --rs: #C97E12;
+  --nir: #E8487A;
+  --gs-wash: rgba(31, 158, 146, 0.18);
+  --rs-wash: rgba(201, 126, 18, 0.18);
+  --nir-wash: rgba(232, 72, 122, 0.16);
+  --ch-r: #F06363;
+  --ch-g: #45B86A;
+  --ch-b: #6B92FF;
+  --ch-ir: #B9467E;
+  --good: #46C46A;
+  --bad: #FF7A70;
+  --scene: #070B0C;
+  --scene-ink: #E9F1F1;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--top-h) + 16px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-2);
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg, canvas { max-width: 100%; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+::selection { background: var(--accent-wash); }
+h1, h2, h3, h4 { line-height: 1.3; text-wrap: balance; color: var(--ink); letter-spacing: -0.015em; }
+h2 { font-size: var(--fs-4); font-weight: 700; margin: 3.2em 0 0.7em; }
+h3 { font-size: var(--fs-3); font-weight: 600; margin: 2.2em 0 0.5em; }
+h4 { font-size: var(--fs-2); font-weight: 600; margin: 1.6em 0 0.4em; }
+p { margin: 0 0 1em; }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: normal; color: var(--ink); background: linear-gradient(transparent 62%, var(--accent-wash) 62%); }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 3rem 0; }
+ul, ol { padding-left: 1.3em; margin: 0 0 1em; }
+li { margin: 0.25em 0; }
+li::marker { color: var(--muted); }
+small { font-size: var(--fs-0); }
+.en { color: var(--muted); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto;
+  height: var(--top-h); padding-inline: var(--gutter);
+  display: flex; align-items: center; gap: 14px;
+}
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand:hover { color: var(--ink); }
+.brand-mark { width: 26px; height: 22px; display: grid; gap: 3px; }
+.brand-mark i { display: block; height: 3.5px; border-radius: 2px; background: var(--gs); transition: transform .45s cubic-bezier(.3,.7,.2,1); }
+.brand:hover .brand-mark i:nth-child(2) { transform: translateX(4px); }
+.brand:hover .brand-mark i:nth-child(3) { transform: translateX(8px); }
+.brand:hover .brand-mark i:nth-child(4) { transform: translateX(12px); }
+.brand:hover .brand-mark i { background: var(--rs); }
+.brand small { font-weight: 500; color: var(--muted); font-size: var(--fs-0); }
+.crumb { color: var(--muted); font-size: var(--fs-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.crumb b { color: var(--ink-2); font-weight: 600; }
+.top-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.icon-btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  height: 34px; min-width: 34px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: var(--fs-1);
+}
+.icon-btn:hover { border-color: var(--muted); }
+.icon-btn svg { width: 16px; height: 16px; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--accent); width: 0; transition: width .1s linear; }
+
+.drawer {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: rgba(5, 12, 13, 0.45);
+}
+.drawer.open { display: block; }
+.drawer-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: min(380px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--line);
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  overflow-y: auto;
+}
+.drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.drawer-head b { font-size: var(--fs-1); color: var(--muted); font-weight: 600; }
+.drawer ol { list-style: none; padding: 0; margin: 0; }
+.drawer li { margin: 0; }
+.drawer a { display: grid; grid-template-columns: 2.2em 1fr; gap: 4px; padding: 9px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; line-height: 1.45; }
+.drawer a:hover { background: var(--surface-2); }
+.drawer a[aria-current="page"] { background: var(--accent-wash); }
+.drawer a span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- page shells ---------- */
+main { display: block; }
+.shell { max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto; padding-inline: var(--gutter); }
+.prose { max-width: var(--measure); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+/* ---------- chapter header ---------- */
+.ch-head { padding-block: clamp(36px, 7vw, 72px) 8px; }
+.ch-label { display: flex; align-items: baseline; gap: 12px; color: var(--muted); font-size: var(--fs-1); margin-bottom: 10px; }
+.ch-label .ch-n { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ch-head h1 { font-size: clamp(var(--fs-5), 5vw, var(--fs-6)); font-weight: 700; letter-spacing: -0.03em; margin: 0 0 0.45em; line-height: 1.18; }
+.ch-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); margin-bottom: 1.2em; }
+.goals { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px 22px 12px; margin: 26px 0 8px; }
+.goals b { display: block; font-size: var(--fs-1); color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.goals ul { margin: 0 0 6px; }
+.toc { margin: 18px 0 0; font-size: var(--fs-1); }
+.toc summary { cursor: pointer; color: var(--ink-2); font-weight: 600; list-style: none; display: inline-flex; gap: 8px; align-items: center; }
+.toc summary::-webkit-details-marker { display: none; }
+.toc summary::before { content: "▸"; color: var(--muted); transition: transform .2s; }
+.toc[open] summary::before { transform: rotate(90deg); }
+.toc ol { margin: 10px 0 0; padding-left: 1.6em; color: var(--ink-2); columns: 2 18rem; column-gap: 2rem; }
+.toc a { color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+/* ---------- article content ---------- */
+.article { padding-bottom: 40px; overflow-x: clip; overflow-clip-margin: 12px; }
+.article > * { max-width: var(--measure); margin-inline: auto; }
+.article > .wide, .article > .sim, .article > figure.wide, .article > .tbl-wrap.wide { max-width: var(--wide); }
+.article h2 { scroll-margin-top: calc(var(--top-h) + 16px); }
+.article h2 .anchor, .article h3 .anchor { opacity: 0; margin-left: 8px; color: var(--muted); text-decoration: none; font-weight: 400; }
+.article h2:hover .anchor, .article h3:hover .anchor { opacity: 1; }
+.lead-in { font-size: var(--fs-3); color: var(--ink-2); line-height: 1.65; }
+
+figure { margin: 2.2em auto; }
+.fig-box svg { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+figcaption b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.fig-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: clamp(12px, 2.4vw, 22px); overflow-x: auto; }
+
+.eq { margin: 1.6em auto; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r2); overflow-x: auto; text-align: center; }
+.eq mjx-container[display="true"] { margin: 0 !important; }
+.eq + p.where { font-size: var(--fs-1); color: var(--ink-2); margin-top: -0.6em; }
+mjx-container { color: inherit; }
+mjx-container[jax="SVG"] > svg { overflow: visible; }
+
+.tbl-wrap { overflow-x: auto; margin: 1.8em auto; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-1); line-height: 1.55; }
+th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-2); }
+thead th { background: var(--surface-2); color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl-caption { font-size: var(--fs-1); color: var(--ink-2); margin: -1.2em auto 1.8em; }
+
+.box { margin: 1.8em auto; padding: 16px 20px; background: var(--surface-2); border-radius: var(--r2); }
+.box > :last-child { margin-bottom: 0; }
+.box-t { font-weight: 700; display: block; margin-bottom: 4px; color: var(--ink); }
+.box.calc { background: var(--surface); border: 1px dashed var(--line); }
+.box.calc .box-t::before { content: "= "; color: var(--accent); }
+.box.field { background: var(--surface); border: 1px solid var(--line); }
+.box.warn { background: var(--rs-wash); }
+
+.try { margin: 0.8em auto 2.4em; font-size: var(--fs-1); color: var(--ink-2); }
+.try b { color: var(--ink); }
+.try ul { margin: 6px 0 0; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86em; font-weight: 600; padding: 0.05em 0.55em; border-radius: 999px; border: 1px solid currentColor; line-height: 1.6; white-space: nowrap; vertical-align: 0.06em; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.gs { color: var(--gs); }
+.chip.rs { color: var(--rs); }
+.chip.nir { color: var(--nir); }
+
+.sources { font-size: var(--fs-0); color: var(--muted); line-height: 1.6; }
+.sources ol { padding-left: 1.4em; }
+.sources a { color: var(--ink-2); }
+sup.ref a { text-decoration: none; font-size: 0.75em; padding: 0 1px; }
+
+/* ---------- simulation panel ---------- */
+.sim {
+  margin: 2.4em auto 0.8em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.sim-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.sim-tag { font-size: var(--fs-0); font-weight: 700; color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim-title { font-weight: 600; font-size: var(--fs-2); margin: 0; flex: 1 1 14rem; min-width: 0; line-height: 1.4; }
+.sim-tools { display: flex; gap: 6px; }
+.sim-body { padding: 16px; display: grid; gap: 14px; }
+.sim-views { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.sim-views.one { grid-template-columns: 1fr; }
+.sim-views.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.sim-views.quad { grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) { .sim-views.quad { grid-template-columns: 1fr; } }
+.view { position: relative; min-width: 0; }
+.view-l { font-size: var(--fs-0); color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+.view-l b { color: var(--ink-2); font-weight: 600; }
+.cv { display: block; width: 100%; border-radius: 8px; background: var(--surface-2); touch-action: pan-y; }
+.cv.scene { background: var(--scene); }
+.cv.grab { cursor: grab; touch-action: none; }
+.cv.grab:active { cursor: grabbing; }
+
+.ctls { display: grid; gap: 12px 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; }
+.ctl { display: grid; gap: 4px; min-width: 0; }
+.ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--fs-1); }
+.ctl-top label, .ctl-top span.l { color: var(--ink-2); }
+.ctl-top output { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.ctl select { font: inherit; font-size: var(--fs-1); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--surface-2); justify-self: start; max-width: 100%; }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: var(--fs-1); padding: 4px 12px; border-radius: 7px; cursor: pointer; line-height: 1.6; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); font-weight: 600; }
+.seg button[data-tone="gs"][aria-pressed="true"] { color: var(--gs); }
+.seg button[data-tone="rs"][aria-pressed="true"] { color: var(--rs); }
+.seg button[data-tone="nir"][aria-pressed="true"] { color: var(--nir); }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-1); color: var(--ink-2); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; margin: 0; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--accent) 0 var(--p, 50%), var(--surface-3) var(--p, 50%) 100%); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: var(--surface-3); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); margin-top: -7px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--fs-1); padding: 5px 12px; border-radius: 8px; cursor: pointer; line-height: 1.6; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+.reads { display: flex; flex-wrap: wrap; gap: 8px 10px; padding-top: 2px; }
+.read { background: var(--surface-2); border-radius: 8px; padding: 6px 12px; min-width: 7.5rem; flex: 1 1 7.5rem; }
+.read span { display: block; font-size: var(--fs-0); color: var(--muted); line-height: 1.4; }
+.read b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.5; font-size: var(--fs-1); }
+.read.hl { background: var(--accent-wash); }
+.read.warn { background: var(--rs-wash); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--fs-0); color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.sim-note { font-size: var(--fs-0); color: var(--muted); margin: 0; }
+
+/* ---------- quiz ---------- */
+.quiz-set { counter-reset: q; }
+.quiz { margin: 1.4em auto; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); }
+.quiz .q { font-weight: 600; margin: 0 0 10px; }
+.quiz .q::before { counter-increment: q; content: "Q" counter(q) ". "; color: var(--accent); }
+.quiz .opts { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.quiz .opts li { margin: 0; }
+.quiz .opt {
+  appearance: none; width: 100%; text-align: left; font: inherit; font-size: var(--fs-1); line-height: 1.55; color: var(--ink);
+  background: var(--surface-2); border: 1px solid transparent; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+  display: grid; grid-template-columns: 1.6em 1fr; gap: 4px;
+}
+.quiz .opt:hover { border-color: var(--line); }
+.quiz .opt .k { color: var(--muted); font-weight: 600; }
+.quiz .opt.correct { background: color-mix(in srgb, var(--good) 14%, var(--surface)); border-color: var(--good); }
+.quiz .opt.wrong { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: var(--bad); }
+.quiz .opt[disabled] { cursor: default; }
+.quiz .why { display: none; margin-top: 12px; font-size: var(--fs-1); color: var(--ink-2); border-top: 1px solid var(--line-2); padding-top: 10px; }
+.quiz.done .why { display: block; }
+.quiz .verdict { font-weight: 700; margin-right: 6px; }
+.quiz .verdict.ok { color: var(--good); }
+.quiz .verdict.no { color: var(--bad); }
+.score { margin: 1em auto; font-size: var(--fs-1); color: var(--ink-2); }
+
+.summary ol { counter-reset: s; list-style: none; padding: 0; }
+.summary li { counter-increment: s; position: relative; padding-left: 2.2em; margin: 0.7em 0; }
+.summary li::before { content: counter(s); position: absolute; left: 0; top: 0.1em; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent-wash); color: var(--accent); font-weight: 700; font-size: 0.85em; display: grid; place-items: center; }
+
+/* ---------- prev/next + footer ---------- */
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 56px auto 0; max-width: var(--measure); }
+.pager a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r2); text-decoration: none; color: var(--ink); background: var(--surface); line-height: 1.45; }
+.pager a:hover { border-color: var(--accent); }
+.pager span { display: block; font-size: var(--fs-0); color: var(--muted); }
+.pager .next { text-align: right; grid-column: 2; }
+.site-foot { margin-top: 72px; border-top: 1px solid var(--line); padding-block: 28px 48px; color: var(--muted); font-size: var(--fs-0); line-height: 1.7; }
+.site-foot .shell { display: grid; gap: 10px; }
+.site-foot a { color: var(--ink-2); }
+
+/* ---------- index page ---------- */
+.hero { padding-block: clamp(28px, 6vw, 64px) clamp(24px, 4vw, 40px); overflow-x: clip; }
+.hero-grid { display: grid; gap: clamp(24px, 4vw, 48px); grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; }
+.hero-kicker { color: var(--ink-2); font-size: var(--fs-1); margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hero h1 { font-size: clamp(2.3rem, 5.4vw, 4.1rem); line-height: 1.12; letter-spacing: -0.04em; font-weight: 700; margin: 0 0 24px; }
+.hero h1 .ln { display: block; white-space: nowrap; transition: transform .9s cubic-bezier(.2,.8,.15,1); will-change: transform; }
+.hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.9em); }
+.hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.8em); }
+.hero-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); max-width: 34rem; margin-bottom: 26px; }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-cta a { padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: var(--fs-1); }
+.hero-cta .go { background: var(--accent); color: var(--on-accent); }
+.hero-cta .go:hover { background: var(--accent-strong); color: var(--on-accent); }
+.hero-cta .alt { border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+.hero-cta .alt:hover { border-color: var(--muted); color: var(--ink); }
+.hero-lab { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
+.hero-lab .cv { aspect-ratio: 16 / 10; }
+.hero-lab-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.hero-lab-bar p { margin: 0; font-size: var(--fs-0); color: var(--muted); }
+.stats-strip { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 26px; font-size: var(--fs-1); color: var(--muted); }
+.stats-strip b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+.section { padding-block: clamp(36px, 6vw, 64px) 0; }
+.section-h { font-size: var(--fs-4); margin: 0 0 8px; }
+.section-sub { color: var(--ink-2); margin: 0 0 22px; max-width: var(--measure); }
+
+.spec { width: 100%; }
+.spec td:first-child { width: 9.5rem; font-weight: 700; font-size: var(--fs-2); color: var(--ink); white-space: nowrap; font-variant-numeric: normal; }
+.spec td:nth-child(2) { color: var(--ink-2); }
+.spec td:last-child { color: var(--muted); font-size: var(--fs-0); white-space: nowrap; }
+
+.chapters { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+.chapters li { margin: 0; }
+.chapters a { display: grid; grid-template-columns: 3rem minmax(0, 1fr); column-gap: 12px; height: 100%; padding: 16px 18px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-decoration: none; color: var(--ink); }
+.chapters a:hover { border-color: var(--accent); }
+.chapters .n { font-size: 1.55rem; line-height: 1.25; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.chapters h3 { margin: 0 0 4px; font-size: var(--fs-3); }
+.chapters p { margin: 0 0 8px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.chapters .meta { font-size: var(--fs-0); color: var(--muted); }
+.paths { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.path { padding: 16px 18px; border-radius: 12px; background: var(--surface-2); }
+.path h3 { margin: 0 0 4px; font-size: var(--fs-2); }
+.path p { margin: 0 0 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.path .hops { display: flex; flex-wrap: wrap; gap: 6px; }
+.path .hops a { font-size: var(--fs-0); font-weight: 600; padding: 3px 9px; border-radius: 6px; background: var(--surface); color: var(--ink); text-decoration: none; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.path .hops a:hover { border-color: var(--accent); color: var(--accent); }
+.howto { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.howto div { padding-top: 10px; border-top: 2px solid var(--line); }
+.howto b { display: block; margin-bottom: 4px; }
+.howto p { margin: 0; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+
+.glossary-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 1em auto; }
+.glossary-tools input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); flex: 1 1 16rem; min-width: 0; }
+dl.gloss { margin: 0 auto; }
+dl.gloss div { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--fs-1); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero h1 .ln { white-space: normal; }
+  .hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.6em); }
+  .hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.2em); }
+}
+@media (max-width: 560px) {
+  body { font-size: 1rem; line-height: 1.72; }
+  .brand small { display: none; }
+  .crumb { display: none; }
+  .sim-body { padding: 12px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager .next { grid-column: 1; }
+  .spec td:first-child { white-space: normal; width: auto; }
+  .spec td:last-child { white-space: normal; }
+  .goals { padding: 14px 16px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+  .topbar, .sim-tools, .pager { display: none; }
+}
+
+/* ---------- SVG figure vocabulary ---------- */
+.fig text { font-family: var(--font); fill: var(--ink-2); font-size: 13px; }
+.fig .t-s { font-size: 11.5px; fill: var(--muted); }
+.fig .t-b { font-weight: 600; fill: var(--ink); }
+.fig .t-gs { fill: var(--gs); font-weight: 600; }
+.fig .t-rs { fill: var(--rs); font-weight: 600; }
+.fig .t-nir { fill: var(--nir); font-weight: 600; }
+.fig .t-on { fill: #fff; font-weight: 600; }
+.fig .k-ink { fill: var(--ink); } .fig .k-ink2 { fill: var(--ink-2); } .fig .k-muted { fill: var(--muted); }
+.fig .k-surf { fill: var(--surface); } .fig .k-surf2 { fill: var(--surface-2); } .fig .k-surf3 { fill: var(--surface-3); } .fig .k-bg { fill: var(--bg); }
+.fig .k-gs { fill: var(--gs); } .fig .k-rs { fill: var(--rs); } .fig .k-nir { fill: var(--nir); }
+.fig .k-gsw { fill: var(--gs-wash); } .fig .k-rsw { fill: var(--rs-wash); } .fig .k-nirw { fill: var(--nir-wash); }
+.fig .k-r { fill: var(--ch-r); } .fig .k-g { fill: var(--ch-g); } .fig .k-b { fill: var(--ch-b); } .fig .k-ir { fill: var(--ch-ir); }
+.fig .k-line { fill: var(--line); } .fig .k-none { fill: none; }
+.fig .l-ink { stroke: var(--ink); fill: none; } .fig .l-ink2 { stroke: var(--ink-2); fill: none; } .fig .l-line { stroke: var(--line); fill: none; } .fig .l-muted { stroke: var(--muted); fill: none; }
+.fig .l-gs { stroke: var(--gs); fill: none; } .fig .l-rs { stroke: var(--rs); fill: none; } .fig .l-nir { stroke: var(--nir); fill: none; }
+.fig .l-surf { stroke: var(--surface); } .fig .l-bg { stroke: var(--bg); }
+.fig .w1 { stroke-width: 1; } .fig .w15 { stroke-width: 1.5; } .fig .w2 { stroke-width: 2; } .fig .w3 { stroke-width: 3; }
+.fig .dash { stroke-dasharray: 4 4; }
+.fig-pair { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.fig-pair > div { min-width: 0; }
+.fig-sub { font-size: var(--fs-1); font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 560px) {
+  .fig text { font-size: 17px; }
+  .fig .t-s { font-size: 15.5px; }
+  .spec td:last-child { display: none; }
+  .fig .m-hide { display: none; }
+  .fig-box svg.wide-svg { min-width: 640px; }
+  .fig text.wide-t { font-size: 15px; }
+}
+</style>
+<script>try{var t=localStorage.getItem('sb-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-slug="metrics">
+<main id="main" class="shell">
+  <header class="ch-head prose">
+    <div class="ch-label"><span class="ch-n">Chapter 04</span><span>성능과 설계</span></div>
+    <h1>GS의 성능 지표</h1>
+    <p class="ch-lede">글로벌 셔터는 노출이 끝난 뒤에도 신호를 한동안 붙잡고 있어야 합니다. 그 보관 시간 동안 빛이 새어 들고(기생 광감도), 전하가 새어 나가고(누설), 저장 동작 자체가 잡음을 더합니다. GS 데이터시트의 핵심 수치는 모두 이 보관 시간과 이어져 있습니다.</p>
+    <div class="goals"><b>이 장을 마치면</b>
+      <ul>
+        <li>PLS와 셔터 효율의 정의를 알고 비율과 dB 사이를 오갈 수 있다.</li>
+        <li>보관 시간이 행마다 다르다는 사실에서 고스트와 셰이딩의 모양을 예측할 수 있다.</li>
+        <li>전압 영역 GS의 저장 커패시터를 kTC 잡음과 누설 요구치로 설계할 수 있다.</li>
+        <li>광자 전달 곡선(PTC)에서 잡음 예산과 다이내믹 레인지를 읽을 수 있다.</li>
+      </ul>
+    </div>
+    <details class="toc" open></details>
+  </header>
+
+  <article class="article">
+    <h2>보관 시간은 행마다 다르다</h2>
+    <p>글로벌 셔터는 모든 행의 노출을 같은 순간에 끝내지만, 읽기는 한 줄씩 합니다. 그래서 첫 행은 거의 기다리지 않고 읽히고, 마지막 행은 읽기 시간 전체만큼 저장소에서 기다립니다.</p>
+    <div class="eq">\[ t_{\mathrm{hold}}(i) \approx i \cdot t_{\mathrm{line}}, \qquad 0 \le t_{\mathrm{hold}} \le T_{\mathrm{read}} \]</div>
+    <p>보관 중에 생기는 모든 오염, 즉 새어 든 빛과 누설 전하는 이 시간에 비례합니다. 따라서 GS 영상의 결함은 대개 <strong>아래쪽으로 갈수록 강해지는</strong> 모양을 띱니다. IWR 모드에서는 보관 중에도 포토다이오드가 다음 프레임을 노출하고 있으므로, 픽셀은 사실상 항상 빛을 받는 상태입니다.</p>
+
+    <h2>기생 광감도(PLS)와 셔터 효율</h2>
+    <p><strong>기생 광감도</strong>(parasitic light sensitivity, PLS)는 저장소가 보관 중에 받는 빛에 얼마나 반응하는지를 포토다이오드의 감도와 비교한 비율입니다. 셔터 효율(global shutter efficiency, GSE)은 같은 성질을 반대로 표현한 것으로, 업계에서는 대개 20 log 규칙의 dB로 씁니다.</p>
+    <div class="eq">\[ \mathrm{PLS} = \frac{\text{보관 중 저장소의 단위 시간 응답}}{\text{노출 중 포토다이오드의 단위 시간 응답}}, \qquad \mathrm{PLS}_{\mathrm{dB}} = 20\log_{10}\mathrm{PLS} \]</div>
+    <p class="where">1/PLS = 10,000이면 −80 dB, 100,000이면 −100 dB입니다. 머신비전 카메라 업체 Adimec이 정리한 상용 센서의 예를 보면 1/700(약 −57 dB)부터 1/20,000(약 −86 dB)까지 센서마다 큰 차이가 납니다.<sup class="ref"><a href="#ref-1">1</a></sup></p>
+    <p>PLS가 무서운 이유는 노출 시간과 보관 시간의 비율이 곱해지기 때문입니다. 보관 중의 조도가 노출 중과 같다고 할 때, 행 \(i\)의 오염 비율은 다음과 같습니다.</p>
+    <div class="eq">\[ \frac{S_{\mathrm{par}}(i)}{S} = \mathrm{PLS}\cdot\frac{E_{\mathrm{hold}}}{E_{\mathrm{exp}}}\cdot\frac{t_{\mathrm{hold}}(i)}{t_{\mathrm{exp}}} \]</div>
+    <div class="box calc"><span class="box-t">계산 예: 스트로브 촬영</span>
+      <p>노출 50 µs, 읽기 20 ms인 센서의 마지막 행은 노출의 400배 동안 기다립니다. PLS가 −80 dB(10⁻⁴)이면 보관 중에도 같은 밝기로 비치는 영역은 노출 신호의 10⁻⁴ × 400 = 4 %만큼 덧씌워집니다. 그 사이 밝은 물체가 지나가면 그 경로를 따라 유령(고스트)이 남습니다. −100 dB라면 0.04 %로 무시할 수 있습니다. 짧은 펄스 조명으로 고속 물체를 찍는 머신비전에서 셔터 효율 사양이 중요한 이유입니다.</p>
+    </div>
+    <p><strong>파장에 따라 달라진다.</strong> 장파장 빛은 실리콘 깊숙이 들어가 저장소 근처에서 전자를 만들기 쉽습니다. Tower 연구진의 2.2 µm 전하 영역 GS는 570 nm 이하에서 1/PLS가 10,000을 넘었고, 8.5 µm 에피가 초록빛을 저장소에서 완전히 차단하고 빨간빛도 크게 줄인다고 보고했습니다. 에피를 6 µm로 얇게 하면 백색광 1/PLS가 4,300으로 떨어졌습니다.<sup class="ref"><a href="#ref-2">2</a></sup> 반대로 근적외선에서는 PLS가 나빠지기 쉬워, 940 nm 조명을 쓰는 응용에서는 NIR 파장에서의 셔터 효율을 따로 확인해야 합니다. 에든버러 대학의 BSI 전압 영역 GS 연구는 940 nm에서 −73.5 dB, 차동 읽기로 −82.5 dB를 보고했습니다.<sup class="ref"><a href="#ref-3">3</a></sup></p>
+
+    <section class="sim" id="sim-pls" data-num="실험 4-1" data-title="PLS 고스트 만들기"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>노출을 20 µs로 줄이고 PLS를 −70 dB로 나쁘게 하면 아래쪽에 밝은 꼬리가 생깁니다. 위쪽 행은 거의 기다리지 않아 깨끗합니다.</li>
+        <li>파장을 940 nm로 바꿔 보세요. 이 실험에서는 가시광 대비 PLS가 10 dB 나빠진다고 가정했습니다.</li>
+        <li>보관 중 조명을 끄면(스트로브가 노출 중에만 켜짐) 고스트가 사라집니다. 6장에서 다룰 펄스 조명의 또 다른 장점입니다.</li>
+      </ul>
+    </div>
+
+    <h2>저장 중 누설과 셰이딩</h2>
+    <p>저장소에는 빛이 없어도 열적으로 생기는 전하(암전류)가 쌓입니다. 이것도 보관 시간에 비례하므로 어두운 영상에 위에서 아래로 밝아지는 경사(셰이딩)를 만들고, 픽셀마다 누설이 달라 고정 패턴 잡음(DSNU)과 핫픽셀이 생깁니다. 실리콘의 암전류는 온도가 6~8 °C 오를 때마다 대략 두 배가 되므로, 차량 실내나 산업 현장처럼 뜨거운 곳에서 특히 중요합니다.</p>
+    <div class="eq">\[ N_{\mathrm{dark}}(i) = I_{\mathrm{d}}(T_{\mathrm{ref}})\; 2^{(T - T_{\mathrm{ref}})/T_{\mathrm{dbl}}}\; t_{\mathrm{hold}}(i) \]</div>
+    <p class="where">\(I_d\)는 저장소의 암전류(e⁻/s), \(T_{\mathrm{dbl}}\)은 두 배가 되는 온도 간격입니다. 전하 영역 GS의 핀드 저장 다이오드는 FD보다 암전류가 훨씬 작고, 전압 영역 GS에서는 커패시터와 샘플링 스위치의 누설이 같은 역할을 합니다.</p>
+    <section class="sim" id="sim-dark" data-num="실험 4-2" data-title="온도와 보관 시간이 만드는 셰이딩"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>온도를 25 °C에서 85 °C로 올리면 마지막 행의 암신호가 수백 배 늘어납니다.</li>
+        <li>읽기 시간을 줄이면 셰이딩 기울기가 함께 줄어듭니다. 빠른 읽기는 GS에서도 이득입니다.</li>
+      </ul>
+    </div>
+
+    <h2>저장 커패시터 설계: kTC와 누설 사이</h2>
+    <p>3장에서 본 대로 전압 영역 GS의 잡음 바닥은 저장 커패시터의 샘플링 잡음이 정합니다. 커패시터는 크게 만들수록 좋지만 쓸 수 있는 면적은 픽셀 하나뿐입니다. 결국 단위 면적당 커패시턴스, 즉 <strong>유전체와 구조</strong>가 핵심입니다.</p>
+    <div class="eq">\[ C = \frac{\varepsilon_0\,k\,A_{\mathrm{eff}}}{t_{\mathrm{ox}}}, \qquad A_{\mathrm{eff}} = \alpha_{3D}\, f_{\mathrm{area}}\, p^2 \]</div>
+    <p class="where">\(k\)는 유전율, \(t_{\mathrm{ox}}\)는 유전막 두께, \(\alpha_{3D}\)는 트렌치·실린더 같은 3차원 구조의 면적 배율, \(f_{\mathrm{area}}\)는 픽셀 면적 중 커패시터 하나에 쓸 수 있는 비율입니다.</p>
+    <p>두께를 줄이고 유전율이 큰 막(Al₂O₃, HfO₂, ZrO₂와 이들의 적층)을 쓰면 밀도가 올라가지만, 같은 신호 전압에서 전계가 커져 누설과 신뢰성(TDDB) 부담이 늘어납니다. TechInsights는 ams OSRAM Mira220의 MIM 커패시터에서 2.3 nm 두께의 AlO/ZrO 유전막을 확인했고, 나노미터 유전막의 배선층 MIM이 작은 픽셀의 전압 영역 GS를 가능하게 한다고 정리했습니다.<sup class="ref"><a href="#ref-4">4</a></sup></p>
+    <p>누설은 반대 방향의 제약입니다. 보관 시간 동안 저장 전압이 허용 오차 \(\Delta V_{\max}\) 이상 변하면 안 되므로, 커패시터와 스위치 누설의 상한이 정해집니다.</p>
+    <div class="eq">\[ I_{\mathrm{leak}} \le \frac{C\,\Delta V_{\max}}{t_{\mathrm{hold}}}, \qquad J_{\mathrm{leak}} \le \frac{I_{\mathrm{leak}}}{A_{\mathrm{eff}}} \]</div>
+    <div class="box calc"><span class="box-t">계산 예: 3 µm 픽셀의 C1</span>
+      <p>픽셀 면적 9 µm²의 40 %를 쓰는 평판 MIM(밀도 10 fF/µm²)이면 C ≈ 36 fF입니다. 마지막 행이 33 ms 기다리는 동안 변화를 50 µV 이하로 묶으려면 누설은 36 fF × 50 µV / 33 ms ≈ 55 aA(5.5×10⁻¹⁷ A) 이하, 면적으로 나누면 약 1.5×10⁻⁹ A/cm² 이하여야 합니다. 같은 커패시터의 kT/C 잡음은 약 340 µV입니다.</p>
+    </div>
+    <section class="sim" id="sim-cap" data-num="실험 4-3" data-title="저장 커패시터 설계기"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>유전막을 SiO₂에서 HfO₂·ZrO₂로 바꾸면 같은 두께에서 커패시턴스가 5~6배가 되고 잡음이 절반 아래로 떨어집니다.</li>
+        <li>두께를 줄여 밀도를 올리면 전계(MV/cm)가 커집니다. 누설 요구치와 전계를 함께 보세요.</li>
+        <li>3D 면적 배율을 높이는 것은 두께를 줄이지 않고 밀도를 올리는 방법입니다. 트렌치·실린더 MIM이 쓰이는 이유입니다.</li>
+      </ul>
+    </div>
+
+    <h2>광자 전달 곡선으로 보는 잡음 예산</h2>
+    <p>센서의 잡음은 신호 크기에 따라 지배 요인이 바뀝니다. 어두울 때는 읽기 잡음(GS라면 저장 잡음 포함)이, 중간에서는 광자 자체의 산탄 잡음 \(\sqrt{S}\)이, 밝을 때는 픽셀 사이 감도 차(PRNU)가 지배합니다. 이것을 로그-로그로 그린 것이 <strong>광자 전달 곡선</strong>(photon transfer curve, PTC)이고, 기울기 0, ½, 1의 세 구간으로 나뉩니다.</p>
+    <div class="eq">\[ \sigma_{\mathrm{tot}}^2 = \sigma_{\mathrm{read}}^2 + \sigma_{kTC,\,\mathrm{residual}}^2 + N_{\mathrm{dark}} + S + (\mathrm{PRNU}\cdot S)^2, \qquad \mathrm{DR} = 20\log_{10}\frac{N_{\mathrm{FWC}}}{\sigma_{\mathrm{floor}}} \]</div>
+    <section class="sim" id="sim-ptc" data-num="실험 4-4" data-title="광자 전달 곡선과 다이내믹 레인지"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>구조를 4T 롤링 → 전하 영역 GS → 전압 영역 GS → 5T FD 저장 순으로 바꾸며 잡음 바닥과 DR이 어떻게 변하는지 보세요.</li>
+        <li>전압 영역 GS에서 커패시터를 키우면 잡음 바닥이 내려가 DR이 늘어납니다.</li>
+      </ul>
+    </div>
+
+    <h2>GS 데이터시트에서 꼭 볼 항목</h2>
+    <div class="tbl-wrap wide">
+      <table>
+        <thead><tr><th>항목</th><th>의미</th><th>확인할 점</th></tr></thead>
+        <tbody>
+          <tr><td>셔터 효율 / PLS</td><td>보관 중 빛 오염의 크기</td><td>측정 파장(가시광·850·940 nm), 측정 조건(F값)</td></tr>
+          <tr><td>셔터 모드</td><td>ITR·IWR(오버랩), 외부 트리거, 멀티 슬로프</td><td>트리거 지연과 지터, 최소 노출 간격</td></tr>
+          <tr><td>최소 노출 시간</td><td>스트로브·고속 촬영의 한계</td><td>수 µs 이하 지원 여부, 노출 시작 지터</td></tr>
+          <tr><td>저장소 암전류</td><td>보관 중 누설</td><td>온도별 값, 셰이딩 보정 여부</td></tr>
+          <tr><td>읽기 잡음 · FWC · DR</td><td>잡음 바닥과 포화</td><td>변환 이득 모드(HCG/LCG)별 값</td></tr>
+          <tr><td>NIR QE · MTF</td><td>근적외선 감도와 선명도</td><td>850/940 nm 값 (5장)</td></tr>
+          <tr><td>프레임률 · 인터페이스</td><td>읽기 시간과 출력 대역</td><td>ROI·비닝 시 프레임률, MIPI 레인 수</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>핵심 정리</h2>
+    <div class="summary">
+      <ol>
+        <li>GS의 보관 시간은 행 번호에 비례해 0부터 읽기 시간까지 늘어난다. 보관 중 오염은 대개 영상 아래쪽에서 강하다.</li>
+        <li>PLS는 저장소의 빛 반응을 포토다이오드와 비교한 비율이며 20 log로 dB 표기한다. 오염은 PLS × (보관 시간 / 노출 시간)에 비례해, 짧은 노출일수록 엄격한 사양이 필요하다.</li>
+        <li>장파장 빛은 깊이 들어가 저장소를 오염시키기 쉬워 NIR에서 PLS가 나빠지기 쉽다. 두꺼운 에피, DTI, 차광막이 대책이다.</li>
+        <li>저장 중 암전류는 온도에 따라 지수적으로 늘고 보관 시간에 비례하는 셰이딩을 만든다.</li>
+        <li>전압 영역 GS의 저장 커패시터는 \(\sqrt{kT/C}\) 잡음을 줄이기 위해 커야 하고, 보관 시간 동안의 전압 변화를 막기 위해 누설이 작아야 한다. 고유전율 박막과 3D 구조가 해법이다.</li>
+      </ol>
+    </div>
+
+    <h2>확인 퀴즈</h2>
+    <div class="quiz-set">
+      <div class="quiz" data-a="3">
+        <p class="q">1/PLS가 30,000인 센서의 PLS를 dB로 나타내면 약 얼마인가?</p>
+        <ol class="opts"><li>−45 dB</li><li>−60 dB</li><li>−89.5 dB</li><li>−130 dB</li></ol>
+        <div class="why">\(20\log_{10}(1/30000) \approx -89.5\) dB입니다.</div>
+      </div>
+      <div class="quiz" data-a="2">
+        <p class="q">같은 센서에서 PLS 고스트를 가장 효과적으로 줄이는 운용 방법은?</p>
+        <ol class="opts"><li>노출 시간을 더 짧게 한다</li><li>조명을 노출 중에만 켜는 펄스 조명으로 바꾼다</li><li>읽기 시간을 늘린다</li><li>아날로그 이득을 높인다</li></ol>
+        <div class="why">오염은 보관 중 조도 \(E_{\mathrm{hold}}\)에 비례합니다. 조명이 노출 중에만 켜지면 보관 중에 저장소로 새어 들 빛이 거의 없습니다. 노출을 줄이면 오히려 \(t_{\mathrm{hold}}/t_{\mathrm{exp}}\) 비율이 커집니다.</div>
+      </div>
+      <div class="quiz" data-a="4">
+        <p class="q">전압 영역 GS의 저장 커패시터 유전막을 같은 재료로 절반 두께로 만들었다. 옳은 설명은?</p>
+        <ol class="opts"><li>커패시턴스가 절반이 된다</li><li>kT/C 잡음 전압이 두 배가 된다</li><li>같은 전압에서 유전막 전계가 절반이 된다</li><li>커패시턴스는 두 배, 같은 전압에서 전계도 두 배가 된다</li></ol>
+        <div class="why">\(C \propto 1/t\)이므로 두 배, 전계 \(V/t\)도 두 배입니다. 잡음 전압은 \(1/\sqrt{2}\)로 줄지만 누설과 신뢰성 부담이 커집니다.</div>
+      </div>
+      <div class="quiz" data-a="1">
+        <p class="q">GS 센서의 어두운 영상이 아래로 갈수록 조금씩 밝아진다. 가장 가능성 높은 원인은?</p>
+        <ol class="opts"><li>저장소 암전류가 보관 시간(행 번호)에 비례해 쌓여서</li><li>렌즈 주변부 광량 저하 때문에</li><li>ADC 비트 수가 부족해서</li><li>롤링 셔터 스큐 때문에</li></ol>
+        <div class="why">아래쪽 행일수록 오래 기다리므로 암전류가 더 쌓입니다. 온도가 높으면 기울기가 급격히 커집니다.</div>
+      </div>
+      <div class="quiz" data-a="3">
+        <p class="q">광자 전달 곡선에서 기울기가 ½인 구간을 지배하는 잡음은?</p>
+        <ol class="opts"><li>읽기 잡음</li><li>PRNU(감도 불균일)</li><li>광자 산탄 잡음</li><li>양자화 잡음</li></ol>
+        <div class="why">산탄 잡음은 \(\sqrt{S}\)이므로 로그-로그에서 기울기 ½입니다. 기울기 0은 읽기 잡음, 1은 PRNU입니다.</div>
+      </div>
+    </div>
+
+    <div class="sources"><b>출처</b>
+      <ol>
+        <li id="ref-1">Adimec, <a href="https://www.adimec.com/what-is-pls/" rel="noopener">What is PLS?</a> — PLS의 정의와 dB 환산, 상용 센서 예시.</li>
+        <li id="ref-2">T. Yokoyama et al., <a href="https://imagesensors.org/Past%20Workshops/2025%20Workshop/2025%20Papers/R01.4_Yokoyama.pdf" rel="noopener">IISW 2025</a> — 2.2 µm 전하 영역 GS, 1/PLS 10,380, 에피 두께·파장 의존성.</li>
+        <li id="ref-3">L. Stark, “Design of back-illuminated voltage-domain global shutter pixels with dual in-pixel storage,” <a href="https://era.ed.ac.uk/items/4bafe71f-0ceb-4bad-bf33-8fe2a30cc606" rel="noopener">University of Edinburgh, 2017</a>.</li>
+        <li id="ref-4">D. McGrath, <a href="https://imagesensors.org/Past%20Workshops/2025%20Workshop/2025%20Papers/R01.1_McGrath.pdf" rel="noopener">IISW 2025</a> — 배선층 MIM과 VDGS, Mira220 유전막.</li>
+        <li>B. Cremers et al., <a href="https://imagesensors.org/Past%20Workshops/2023%20Workshop/2023%20Papers/R45.pdf" rel="noopener">IISW 2023</a> — 3.45 µm VDGS, GSE −100 dB 이하.</li>
+      </ol>
+    </div>
+  </article>
+  <nav class="pager" aria-label="챕터 이동"></nav>
+</main>
+<script>
+/* ShutterBook core: page chrome, theme, controls, canvas helpers, plotting, quiz. */
+(function () {
+  'use strict';
+  const SB = (window.SB = window.SB || {});
+  const root = document.documentElement;
+  const BASE = root.getAttribute('data-base') || '';
+
+  SB.CHAPTERS = [
+    { n: '01', slug: 'exposure', t: '노출의 시간 구조', d: '리셋 → 적분 → 읽기. 롤링과 글로벌 셔터는 이 세 동작의 타이밍이 다르다.', k: '타이밍 다이어그램 · 라인 시간 · 병렬 읽기' },
+    { n: '02', slug: 'rolling', t: '롤링 셔터 왜곡 실험실', d: '스큐, 젤로, 프로펠러, 플래시 밴드, LED 플리커를 직접 만들어 본다.', k: '왜곡 5종 시뮬레이터' },
+    { n: '03', slug: 'pixel', t: '글로벌 셔터 픽셀 해부', d: '4T 픽셀에서 출발해 전하 영역·전압 영역 GS 픽셀과 적층 구조까지.', k: '픽셀 동작 애니메이션 · 3D 적층 모델' },
+    { n: '04', slug: 'metrics', t: 'GS의 성능 지표', d: 'PLS(기생 광감도), 저장 노드 누설, kTC 노이즈, 저장 커패시터 설계.', k: 'PLS 고스트 · 커패시터 설계기 · PTC' },
+    { n: '05', slug: 'nir', t: '실리콘과 근적외선', d: '850·940 nm 빛은 실리콘 깊숙이 들어간다. 흡수 깊이와 QE, 광포획 구조.', k: '흡수 깊이 몬테카를로 · QE 계산기' },
+    { n: '06', slug: 'ir-gs', t: 'IR 조명과 글로벌 셔터', d: '능동 조명을 노출 창에 맞추면 무엇이 좋아지는가. 스트로브와 주변광 억제.', k: '스트로브 동기화 · 주변광 SNR · 시선 추적' },
+    { n: '07', slug: 'rgbir', t: 'RGB-IR 센서', d: '한 센서로 컬러와 NIR을 함께. 필터 배열, IR 누설 보정, 최신 하이브리드 셔터.', k: 'CFA 탐험기 · 분광 응답 · 처리 파이프라인' },
+    { n: '08', slug: 'physical-ai', t: 'Physical AI와 글로벌 셔터', d: '로봇·휴머노이드·자율주행이 왜 글로벌 셔터를 원하는가. VIO, 깊이, 동기화, 지연.', k: 'VIO 오차 · 지연 예산 · 스테레오 깊이' },
+    { n: '09', slug: 'landscape', t: '제품 지형도와 로드맵', d: '대표 GS·NIR·RGB-IR 센서를 한눈에. 픽셀 피치와 해상도, 적층 기술의 흐름.', k: '센서 지도 · 연표' },
+    { n: '10', slug: 'review', t: '종합 퀴즈와 용어집', d: '전체 내용을 점검하는 종합 퀴즈와 검색 가능한 용어집.', k: '퀴즈 20문항 · 용어 66개' }
+  ];
+  SB.base = BASE;
+
+  /* ---------------- theme ---------------- */
+  const THEME_KEY = 'sb-theme';
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  SB.isDark = function () {
+    const a = root.getAttribute('data-theme');
+    if (a) return a === 'dark';
+    return !!(mq && mq.matches);
+  };
+  function themeChanged() {
+    colorCache = null;
+    document.dispatchEvent(new CustomEvent('sb:theme'));
+  }
+  SB.setTheme = function (t) {
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+    else root.removeAttribute('data-theme');
+    try { if (t) localStorage.setItem(THEME_KEY, t); else localStorage.removeItem(THEME_KEY); } catch (e) { /* storage unavailable */ }
+    themeChanged();
+  };
+  if (mq) {
+    const h = () => { if (!root.getAttribute('data-theme')) themeChanged(); };
+    if (mq.addEventListener) mq.addEventListener('change', h); else if (mq.addListener) mq.addListener(h);
+  }
+
+  /* ---------------- colors ---------------- */
+  let colorCache = null;
+  SB.c = function (name) {
+    if (!colorCache) colorCache = {};
+    if (!(name in colorCache)) colorCache[name] = getComputedStyle(root).getPropertyValue('--' + name).trim() || '#888';
+    return colorCache[name];
+  };
+  SB.rgba = function (color, a) {
+    let c = color.trim();
+    if (c.startsWith('rgba')) return c.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgba($1,$2,$3,' + a + ')');
+    if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', ',' + a + ')');
+    if (c[0] === '#') {
+      if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+      const n = parseInt(c.slice(1, 7), 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    return c;
+  };
+  SB.mix = function (c1, c2, t) {
+    const p = (c) => { c = c.trim(); if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]; const n = parseInt(c.slice(1, 7), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+    const a = p(c1), b = p(c2);
+    return 'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',') + ')';
+  };
+  /* wavelength (nm) → approximate display colour; NIR shown as crimson by convention */
+  SB.waveColor = function (nm) {
+    if (nm >= 760) return SB.c('nir');
+    let r = 0, g = 0, b = 0;
+    if (nm < 440) { r = -(nm - 440) / 60; b = 1; }
+    else if (nm < 490) { g = (nm - 440) / 50; b = 1; }
+    else if (nm < 510) { g = 1; b = -(nm - 510) / 20; }
+    else if (nm < 580) { r = (nm - 510) / 70; g = 1; }
+    else if (nm < 645) { r = 1; g = -(nm - 645) / 65; }
+    else { r = 1; }
+    let f = 1;
+    if (nm < 420) f = 0.4 + 0.6 * (nm - 380) / 40; else if (nm > 700) f = 0.4 + 0.6 * (760 - nm) / 60;
+    const k = (v) => Math.round(255 * Math.pow(Math.max(0, v) * f, 0.8));
+    return 'rgb(' + k(r) + ',' + k(g) + ',' + k(b) + ')';
+  };
+
+  /* ---------------- numbers ---------------- */
+  SB.f = function (x, d) {
+    if (d === undefined) d = 2;
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  };
+  SB.fx = function (x, d) {
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: d });
+  };
+  SB.sig = function (x, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+    return SB.f(Number(x.toFixed(Math.min(d, 12))), d);
+  };
+  const PREF = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p'], [1e-15, 'f']];
+  SB.eng = function (x, unit, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0 ' + (unit || '');
+    const ax = Math.abs(x);
+    for (const [s, p] of PREF) {
+      if (ax >= s * 0.9995) return SB.sig(x / s, n || 3) + ' ' + p + (unit || '');
+    }
+    return SB.sig(x / 1e-15, n || 3) + ' f' + (unit || '');
+  };
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  SB.sci = function (x, d) {
+    if (!isFinite(x) || x === 0) return SB.f(x, d);
+    const e = Math.floor(Math.log10(Math.abs(x)));
+    const m = x / Math.pow(10, e);
+    const ms = Math.abs(m - 1) < 1e-9 && !d ? '' : SB.fx(m, d === undefined ? 1 : d) + '×';
+    return ms + '10' + String(e).split('').map((c) => SUP[c] || c).join('');
+  };
+  SB.clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  SB.lerp = (a, b, t) => a + (b - a) * t;
+  SB.interp = function (table, x) { /* table: [[x,y],...] ascending */
+    if (x <= table[0][0]) return table[0][1];
+    if (x >= table[table.length - 1][0]) return table[table.length - 1][1];
+    let lo = 0, hi = table.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (table[m][0] <= x) lo = m; else hi = m; }
+    const t = (x - table[lo][0]) / (table[hi][0] - table[lo][0]);
+    return table[lo][1] + t * (table[hi][1] - table[lo][1]);
+  };
+  SB.dB = (r) => 20 * Math.log10(r);
+
+  /* ---------------- random ---------------- */
+  SB.rng = function (seed) {
+    let a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  SB.gauss = function (r) {
+    let u = 0, v = 0;
+    while (u === 0) u = r();
+    while (v === 0) v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  SB.poisson = function (r, lam) {
+    if (lam <= 0) return 0;
+    if (lam > 40) return Math.max(0, Math.round(lam + Math.sqrt(lam) * SB.gauss(r)));
+    const L = Math.exp(-lam); let k = 0, p = 1;
+    do { k++; p *= r(); } while (p > L);
+    return k - 1;
+  };
+
+  /* ---------------- motion preference ---------------- */
+  SB.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ---------------- canvas ---------------- */
+  SB.canvas = function (cv, draw, opts) {
+    opts = opts || {};
+    const ctx = cv.getContext('2d');
+    const o = { cv: cv, ctx: ctx, w: 0, h: 0, dpr: 1 };
+    let lastW = -1;
+    function size(force) {
+      const w = Math.max(40, Math.round(cv.clientWidth || cv.parentElement.clientWidth || 300));
+      if (!force && w === lastW) return false;
+      lastW = w;
+      let asp = typeof opts.aspect === 'function' ? opts.aspect(w) : (opts.aspect || 1.6);
+      let h = opts.height ? (typeof opts.height === 'function' ? opts.height(w) : opts.height) : Math.round(w / asp);
+      if (opts.maxH) h = Math.min(h, opts.maxH);
+      if (opts.minH) h = Math.max(h, opts.minH);
+      cv.style.height = h + 'px';
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      o.w = w; o.h = h; o.dpr = dpr;
+      return true;
+    }
+    o.draw = function () {
+      ctx.setTransform(o.dpr, 0, 0, o.dpr, 0, 0);
+      ctx.clearRect(0, 0, o.w, o.h);
+      draw && draw(o);
+    };
+    o.resize = function () { size(true); o.draw(); };
+    size(true);
+    Promise.resolve().then(() => o.draw());
+    const target = cv.parentElement || cv;
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { if (size(false)) o.draw(); });
+      ro.observe(target);
+    } else {
+      window.addEventListener('resize', () => { if (size(false)) o.draw(); });
+    }
+    document.addEventListener('sb:theme', () => o.draw());
+    return o;
+  };
+
+  /* pointer helper: returns position in CSS px relative to canvas */
+  SB.pointer = function (cv, handlers) {
+    let down = false;
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    cv.addEventListener('pointerdown', (e) => { down = true; try { cv.setPointerCapture(e.pointerId); } catch (_) { } handlers.down && handlers.down(pos(e), e); });
+    cv.addEventListener('pointermove', (e) => { if (down) handlers.drag && handlers.drag(pos(e), e); else handlers.move && handlers.move(pos(e), e); });
+    const up = (e) => { if (!down) return; down = false; handlers.up && handlers.up(pos(e), e); };
+    cv.addEventListener('pointerup', up);
+    cv.addEventListener('pointercancel', up);
+    cv.addEventListener('pointerleave', (e) => { if (!down) handlers.leave && handlers.leave(e); });
+  };
+
+  /* ---------------- animation ---------------- */
+  SB.anim = function (el, step, opts) {
+    opts = opts || {};
+    let playing = opts.autoplay !== false && !SB.reduced;
+    let visible = false, raf = 0, last = 0;
+    const listeners = [];
+    function frame(t) {
+      raf = 0;
+      if (!playing || !visible) { last = 0; return; }
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt, t / 1000);
+      raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (playing && visible && !raf) raf = requestAnimationFrame(frame); }
+    if (window.IntersectionObserver) {
+      new IntersectionObserver((es) => { visible = es[0].isIntersecting; kick(); }, { rootMargin: '80px' }).observe(el);
+    } else { visible = true; kick(); }
+    const api = {
+      get playing() { return playing; },
+      play() { playing = true; last = 0; kick(); listeners.forEach((f) => f(true)); },
+      pause() { playing = false; listeners.forEach((f) => f(false)); },
+      toggle() { playing ? api.pause() : api.play(); },
+      onState(f) { listeners.push(f); },
+      step(dt) { step(dt || 1 / 60, performance.now() / 1000); }
+    };
+    return api;
+  };
+
+  /* ---------------- DOM helpers ---------------- */
+  SB.h = function (tag, attrs, html) {
+    const e = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  };
+  const ICON = {
+    play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"/></svg>',
+    reset: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-4.6 3H1.8A6.6 6.6 0 1 0 8 1.4V0L4.8 2.2 8 4.4z" fill="currentColor"/></svg>',
+    sun: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"/></g></svg>',
+    moon: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 1.2A6.8 6.8 0 1 0 14.8 11 5.6 5.6 0 0 1 10.8 1.2z" fill="currentColor"/></svg>',
+    menu: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+  SB.icon = ICON;
+
+  /* ---------------- sim frame ---------------- */
+  /* Builds the panel inside <section class="sim" id="..." data-num="..." data-title="...">.
+     spec.views: [{key, label, sub, aspect, cls, height, minH, maxH}]  spec.layout: 'one'|'two'|'' */
+  SB.frame = function (id, spec) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    spec = spec || {};
+    el.innerHTML = '';
+    const head = SB.h('div', { class: 'sim-head' });
+    head.appendChild(SB.h('span', { class: 'sim-tag', text: el.dataset.num || '실험' }));
+    head.appendChild(SB.h('h3', { class: 'sim-title', text: el.dataset.title || '' }));
+    const tools = SB.h('div', { class: 'sim-tools' });
+    head.appendChild(tools);
+    el.appendChild(head);
+    const body = SB.h('div', { class: 'sim-body' });
+    el.appendChild(body);
+    const views = {};
+    if (spec.views && spec.views.length) {
+      const vw = SB.h('div', { class: 'sim-views ' + (spec.layout || '') });
+      spec.views.forEach((v) => {
+        const box = SB.h('div', { class: 'view' });
+        if (v.label !== undefined) {
+          const lab = SB.h('div', { class: 'view-l' });
+          lab.innerHTML = '<b>' + v.label + '</b><span>' + (v.sub || '') + '</span>';
+          box.appendChild(lab);
+        }
+        const cv = SB.h('canvas', { class: 'cv ' + (v.cls || ''), role: 'img', 'aria-label': v.alt || v.label || '' });
+        box.appendChild(cv);
+        vw.appendChild(box);
+        views[v.key] = { box: box, cv: cv, label: box.querySelector('.view-l span'), spec: v };
+      });
+      body.appendChild(vw);
+    }
+    const ctls = SB.h('div', { class: 'ctls' });
+    const reads = SB.h('div', { class: 'reads' });
+    body.appendChild(ctls);
+    body.appendChild(reads);
+    const f = { el: el, body: body, views: views, ctls: ctls, reads: reads, tools: tools };
+    f.note = function (html) { const p = SB.h('p', { class: 'sim-note' }, html); body.appendChild(p); return p; };
+    f.legend = function (items, where) {
+      const lg = SB.h('div', { class: 'legend' });
+      lg.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+      (where || body).insertBefore(lg, ctls);
+      f._legend = lg; f._legendItems = items;
+      return lg;
+    };
+    f.refreshLegend = function () {
+      if (!f._legend) return;
+      const items = f._legendItems.map((it) => Object.assign({}, it, { c: typeof it.cf === 'function' ? it.cf() : it.c }));
+      f._legend.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+    };
+    document.addEventListener('sb:theme', () => f.refreshLegend());
+    f.playButton = function (anim) {
+      const b = SB.h('button', { class: 'btn', type: 'button' });
+      const sync = (p) => { b.innerHTML = (p ? ICON.pause + ' 일시정지' : ICON.play + ' 재생'); b.setAttribute('aria-pressed', p ? 'true' : 'false'); };
+      b.addEventListener('click', () => anim.toggle());
+      anim.onState(sync); sync(anim.playing);
+      tools.appendChild(b);
+      return b;
+    };
+    f.button = function (label, fn, cls) {
+      const b = SB.h('button', { class: 'btn ' + (cls || ''), type: 'button' }, label);
+      b.addEventListener('click', fn);
+      tools.appendChild(b);
+      return b;
+    };
+    return f;
+  };
+
+  /* ---------------- controls ---------------- */
+  let ctlSeq = 0;
+  SB.controls = function (container, specs, onChange) {
+    const v = {};
+    const api = { v: v, el: {}, set: null };
+    function emit(id) { onChange && onChange(v, id); }
+    specs.forEach((s) => {
+      const uid = 'c' + (++ctlSeq) + '-' + (s.id || 'x');
+      if (s.type === 'range' || !s.type) {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const top = SB.h('div', { class: 'ctl-top' });
+        const lab = SB.h('label', { for: uid }, s.label);
+        const out = SB.h('output', { for: uid });
+        top.appendChild(lab); top.appendChild(out);
+        const inp = SB.h('input', { type: 'range', id: uid });
+        const log = !!s.log;
+        const toPos = (x) => log ? Math.round(1000 * Math.log(x / s.min) / Math.log(s.max / s.min)) : x;
+        const fromPos = (p) => {
+          if (!log) return Number(p);
+          let x = s.min * Math.pow(s.max / s.min, p / 1000);
+          const m = Math.pow(10, Math.floor(Math.log10(x)) - 2);
+          return Math.round(x / m) * m;
+        };
+        if (log) { inp.min = 0; inp.max = 1000; inp.step = 1; }
+        else { inp.min = s.min; inp.max = s.max; inp.step = s.step || 'any'; }
+        const fmt = s.fmt || ((x) => SB.f(x, 3) + (s.unit ? ' ' + s.unit : ''));
+        const paint = () => { const p = (Number(inp.value) - Number(inp.min)) / (Number(inp.max) - Number(inp.min)) * 100; inp.style.setProperty('--p', p + '%'); };
+        const setVal = (x, silent) => { v[s.id] = x; inp.value = toPos(x); out.textContent = fmt(x); paint(); if (!silent) emit(s.id); };
+        inp.addEventListener('input', () => { v[s.id] = fromPos(inp.value); out.textContent = fmt(v[s.id]); paint(); emit(s.id); });
+        wrap.appendChild(top); wrap.appendChild(inp);
+        container.appendChild(wrap);
+        api.el[s.id] = { input: inp, out: out, set: setVal, wrap: wrap, refmt: () => { out.textContent = fmt(v[s.id]); } };
+        setVal(s.value, true);
+      } else if (s.type === 'seg') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        if (s.label) wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<span class="l">' + s.label + '</span>'));
+        const seg = SB.h('div', { class: 'seg', role: 'group', 'aria-label': s.label || s.id });
+        const btns = s.options.map((o) => {
+          const b = SB.h('button', { type: 'button', 'data-v': o.v }, o.t);
+          if (o.tone) b.dataset.tone = o.tone;
+          b.addEventListener('click', () => { setVal(o.v); });
+          seg.appendChild(b);
+          return b;
+        });
+        const setVal = (x, silent) => { v[s.id] = x; btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(x)))); if (!silent) emit(s.id); };
+        wrap.appendChild(seg);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, buttons: btns };
+        setVal(s.value, true);
+      } else if (s.type === 'select') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<label for="' + uid + '">' + s.label + '</label>'));
+        const sel = SB.h('select', { id: uid });
+        s.options.forEach((o) => { const op = SB.h('option', { value: o.v }, o.t); sel.appendChild(op); });
+        sel.addEventListener('change', () => { v[s.id] = sel.value; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = String(x); sel.value = String(x); if (!silent) emit(s.id); };
+        wrap.appendChild(sel);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, select: sel };
+        setVal(s.value, true);
+      } else if (s.type === 'check') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const lab = SB.h('label', { class: 'check' });
+        const inp = SB.h('input', { type: 'checkbox', id: uid });
+        lab.appendChild(inp); lab.appendChild(document.createTextNode(s.label));
+        inp.addEventListener('change', () => { v[s.id] = inp.checked; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = !!x; inp.checked = !!x; if (!silent) emit(s.id); };
+        wrap.appendChild(lab);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, input: inp };
+        setVal(s.value, true);
+      }
+    });
+    api.set = (id, x, silent) => api.el[id] && api.el[id].set(x, silent);
+    api.show = (id, on) => { if (api.el[id]) api.el[id].wrap.hidden = !on; };
+    return api;
+  };
+
+  /* ---------------- readouts ---------------- */
+  SB.reads = function (container, specs) {
+    const map = {};
+    specs.forEach((s) => {
+      const d = SB.h('div', { class: 'read' + (s.hl ? ' hl' : '') });
+      d.innerHTML = '<span>' + s.label + '</span><b>—</b>';
+      container.appendChild(d);
+      map[s.id] = d;
+    });
+    return {
+      set(id, text, state) {
+        const d = map[id]; if (!d) return;
+        d.querySelector('b').textContent = text;
+        d.classList.toggle('warn', state === 'warn');
+      },
+      el: map
+    };
+  };
+
+  /* ---------------- plotting ---------------- */
+  function niceStep(span, n) {
+    const raw = span / Math.max(1, n);
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const m = raw / p;
+    return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+  }
+  SB.ticks = function (a, b, n) {
+    const st = niceStep(b - a, n || 5);
+    const out = [];
+    for (let x = Math.ceil(a / st - 1e-9) * st; x <= b + st * 1e-6; x += st) out.push(Math.abs(x) < st * 1e-9 ? 0 : x);
+    return out;
+  };
+  SB.logTicks = function (a, b) {
+    const out = [];
+    for (let e = Math.floor(Math.log10(a)); e <= Math.ceil(Math.log10(b)); e++) {
+      const x = Math.pow(10, e);
+      if (x >= a * 0.999 && x <= b * 1.001) out.push(x);
+    }
+    return out;
+  };
+  SB.plot = function (o, box, opt) {
+    const ctx = o.ctx;
+    opt = Object.assign({ pad: [10, 12, 34, 46] }, opt || {});
+    const [pt, pr, pb, pl] = opt.pad;
+    const X0 = box.x + pl, X1 = box.x + box.w - pr, Y0 = box.y + pt, Y1 = box.y + box.h - pb;
+    const lx = (v) => opt.xlog ? Math.log10(v) : v;
+    const ly = (v) => opt.ylog ? Math.log10(v) : v;
+    const ax = lx(opt.xmin), bx = lx(opt.xmax), ay = ly(opt.ymin), by = ly(opt.ymax);
+    const p = {
+      x0: X0, x1: X1, y0: Y0, y1: Y1, ctx: ctx,
+      X: (v) => X0 + (lx(v) - ax) / (bx - ax) * (X1 - X0),
+      Y: (v) => Y1 - (ly(v) - ay) / (by - ay) * (Y1 - Y0),
+      invX: (px) => { const t = ax + (px - X0) / (X1 - X0) * (bx - ax); return opt.xlog ? Math.pow(10, t) : t; },
+      invY: (py) => { const t = ay + (Y1 - py) / (Y1 - Y0) * (by - ay); return opt.ylog ? Math.pow(10, t) : t; }
+    };
+    const font = '11px ' + SB.c('font').replace(/"/g, '"');
+    p.axes = function () {
+      ctx.save();
+      ctx.font = font;
+      ctx.lineWidth = 1;
+      const xt = opt.xticks || (opt.xlog ? SB.logTicks(opt.xmin, opt.xmax) : SB.ticks(opt.xmin, opt.xmax, opt.nx || Math.max(3, Math.round((X1 - X0) / 80))));
+      const yt = opt.yticks || (opt.ylog ? SB.logTicks(opt.ymin, opt.ymax) : SB.ticks(opt.ymin, opt.ymax, opt.ny || Math.max(3, Math.round((Y1 - Y0) / 45))));
+      ctx.strokeStyle = SB.c('line-2');
+      ctx.beginPath();
+      if (opt.grid !== false) {
+        yt.forEach((t) => { const y = Math.round(p.Y(t)) + 0.5; ctx.moveTo(X0, y); ctx.lineTo(X1, y); });
+        if (opt.xgrid) xt.forEach((t) => { const x = Math.round(p.X(t)) + 0.5; ctx.moveTo(x, Y0); ctx.lineTo(x, Y1); });
+      }
+      ctx.stroke();
+      ctx.strokeStyle = SB.c('line');
+      ctx.beginPath(); ctx.moveTo(X0, Math.round(Y1) + 0.5); ctx.lineTo(X1, Math.round(Y1) + 0.5); ctx.stroke();
+      if (opt.yaxisLine) { ctx.beginPath(); ctx.moveTo(Math.round(X0) + 0.5, Y0); ctx.lineTo(Math.round(X0) + 0.5, Y1); ctx.stroke(); }
+      ctx.fillStyle = SB.c('muted');
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const xf = opt.xfmt || ((t) => SB.f(t, 3));
+      const yf = opt.yfmt || ((t) => SB.f(t, 3));
+      xt.forEach((t) => ctx.fillText(xf(t), p.X(t), Y1 + 6));
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      yt.forEach((t) => ctx.fillText(yf(t), X0 - 6, p.Y(t)));
+      if (opt.xlabel) { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlabel, (X0 + X1) / 2, box.y + box.h - 1); }
+      if (opt.ylabel) { ctx.save(); ctx.translate(box.x + 10, (Y0 + Y1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(opt.ylabel, 0, 0); ctx.restore(); }
+      ctx.restore();
+      return p;
+    };
+    p.clip = function () { ctx.save(); ctx.beginPath(); ctx.rect(X0, Y0 - 1, X1 - X0, Y1 - Y0 + 2); ctx.clip(); };
+    p.unclip = function () { ctx.restore(); };
+    p.line = function (pts, color, width, dash) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = width || 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      let started = false;
+      pts.forEach((q) => {
+        if (q == null || !isFinite(q[1]) || !isFinite(q[0])) { started = false; return; }
+        const x = p.X(q[0]), y = p.Y(q[1]);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    };
+    p.area = function (pts, color, alpha, base) {
+      if (!pts.length) return;
+      ctx.save();
+      ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      ctx.beginPath();
+      const yb = p.Y(base == null ? Math.max(opt.ymin, opt.ylog ? opt.ymin : 0) : base);
+      ctx.moveTo(p.X(pts[0][0]), yb);
+      pts.forEach((q) => ctx.lineTo(p.X(q[0]), p.Y(q[1])));
+      ctx.lineTo(p.X(pts[pts.length - 1][0]), yb);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    };
+    p.band = function (x0, x1, color, alpha) {
+      ctx.save(); ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      const a = Math.max(X0, p.X(x0)), b = Math.min(X1, p.X(x1));
+      if (b > a) ctx.fillRect(a, Y0, b - a, Y1 - Y0);
+      ctx.restore();
+    };
+    p.vline = function (x, color, label, opts2) {
+      const xx = Math.round(p.X(x)) + 0.5;
+      if (xx < X0 - 1 || xx > X1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(xx, Y0); ctx.lineTo(xx, Y1); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'top'; ctx.textAlign = (xx > X1 - 60) ? 'right' : 'left'; ctx.fillText(label, xx + (xx > X1 - 60 ? -4 : 4), Y0 + 2 + ((opts2 && opts2.dy) || 0)); }
+      ctx.restore();
+    };
+    p.hline = function (y, color, label, opts2) {
+      const yy = Math.round(p.Y(y)) + 0.5;
+      if (yy < Y0 - 1 || yy > Y1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(X0, yy); ctx.lineTo(X1, yy); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'bottom'; ctx.textAlign = (opts2 && opts2.left) ? 'left' : 'right'; ctx.fillText(label, (opts2 && opts2.left) ? X0 + 4 : X1 - 4, yy - 3); }
+      ctx.restore();
+    };
+    p.dot = function (x, y, color, r) {
+      const xx = p.X(x), yy = p.Y(y);
+      ctx.save();
+      ctx.fillStyle = SB.c('surface'); ctx.beginPath(); ctx.arc(xx, yy, (r || 4.5) + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(xx, yy, r || 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    p.label = function (x, y, text, o2) {
+      o2 = o2 || {};
+      ctx.save(); ctx.font = (o2.bold ? '600 ' : '') + (o2.size || 11) + 'px ' + SB.c('font');
+      ctx.fillStyle = o2.color || SB.c('ink-2');
+      ctx.textAlign = o2.align || 'left'; ctx.textBaseline = o2.base || 'middle';
+      ctx.fillText(text, (o2.px ? x : p.X(x)) + (o2.dx || 0), (o2.py ? y : p.Y(y)) + (o2.dy || 0));
+      ctx.restore();
+    };
+    return p;
+  };
+  SB.font = function (size, weight) { return (weight ? weight + ' ' : '') + size + 'px ' + SB.c('font'); };
+  SB.text = function (ctx, s, x, y, o) {
+    o = o || {};
+    ctx.save();
+    ctx.font = SB.font(o.size || 12, o.weight);
+    ctx.fillStyle = o.color || SB.c('ink-2');
+    ctx.textAlign = o.align || 'left';
+    ctx.textBaseline = o.base || 'middle';
+    if (o.halo) { ctx.lineWidth = 4; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  };
+  SB.rrect = function (ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  };
+  SB.arrow = function (ctx, x0, y0, x1, y1, color, w, head) {
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    const a = Math.atan2(y1 - y0, x1 - x0), hs = head || 7;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hs * Math.cos(a - 0.4), y1 - hs * Math.sin(a - 0.4)); ctx.lineTo(x1 - hs * Math.cos(a + 0.4), y1 - hs * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  };
+
+  /* ---------------- quiz ---------------- */
+  function initQuiz() {
+    document.querySelectorAll('.quiz').forEach((qz) => {
+      const ans = Number(qz.dataset.a) - 1;
+      const items = Array.from(qz.querySelectorAll('.opts > li'));
+      const why = qz.querySelector('.why');
+      const keys = ['①', '②', '③', '④', '⑤'];
+      const btns = items.map((li, i) => {
+        const b = SB.h('button', { type: 'button', class: 'opt' });
+        b.innerHTML = '<span class="k">' + keys[i] + '</span><span>' + li.innerHTML + '</span>';
+        li.innerHTML = ''; li.appendChild(b);
+        b.addEventListener('click', () => {
+          if (qz.classList.contains('done')) return;
+          qz.classList.add('done');
+          btns.forEach((bb, j) => { bb.disabled = true; if (j === ans) bb.classList.add('correct'); });
+          const ok = i === ans;
+          if (!ok) b.classList.add('wrong');
+          qz.dataset.ok = ok ? '1' : '0';
+          if (why && !why.querySelector('.verdict')) {
+            const v = SB.h('span', { class: 'verdict ' + (ok ? 'ok' : 'no') }, ok ? '정답.' : '오답 — 정답은 ' + keys[ans] + '.');
+            why.insertBefore(v, why.firstChild);
+          }
+          const set = qz.closest('.quiz-set');
+          if (set) {
+            const all = set.querySelectorAll('.quiz');
+            const done = set.querySelectorAll('.quiz.done');
+            const good = set.querySelectorAll('.quiz[data-ok="1"]');
+            let sc = set.querySelector('.score');
+            if (!sc) { sc = SB.h('p', { class: 'score' }); set.appendChild(sc); }
+            sc.textContent = done.length + ' / ' + all.length + '문항 풀이 · ' + good.length + '개 정답' + (done.length === all.length ? (good.length === all.length ? ' — 모두 맞혔습니다.' : ' — 틀린 문항의 해설을 다시 읽어 보세요.') : '');
+          }
+        });
+        return b;
+      });
+    });
+  }
+
+  /* ---------------- page chrome ---------------- */
+  function chrome() {
+    const slug = document.body.dataset.slug || '';
+    const idx = SB.CHAPTERS.findIndex((c) => c.slug === slug);
+    const ch = idx >= 0 ? SB.CHAPTERS[idx] : null;
+    const home = BASE + 'index.html';
+    const chapHref = (c) => BASE + c.slug + '.html';
+
+    // top bar
+    const top = SB.h('header', { class: 'topbar' });
+    top.innerHTML =
+      '<div class="topbar-in">' +
+      '<a class="brand" href="' + home + '" aria-label="ShutterBook 처음으로"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>ShutterBook <small>글로벌 셔터 교과서</small></a>' +
+      '<span class="crumb">' + (ch ? '<b>' + ch.n + '</b> ' + ch.t : '') + '</span>' +
+      '<div class="top-actions">' +
+      '<button class="icon-btn" type="button" data-act="theme" aria-label="밝기 테마 전환"></button>' +
+      '<button class="icon-btn" type="button" data-act="menu" aria-label="챕터 목록 열기">' + ICON.menu + '<span>목차</span></button>' +
+      '</div></div><div class="progress" aria-hidden="true"></div>';
+    document.body.insertBefore(top, document.body.firstChild);
+    const skip = SB.h('a', { class: 'skip', href: '#main' }, '본문으로 건너뛰기');
+    document.body.insertBefore(skip, top);
+
+    const themeBtn = top.querySelector('[data-act="theme"]');
+    const paintTheme = () => { themeBtn.innerHTML = SB.isDark() ? ICON.sun : ICON.moon; themeBtn.setAttribute('aria-label', SB.isDark() ? '밝은 화면으로 전환' : '어두운 화면으로 전환'); };
+    paintTheme();
+    document.addEventListener('sb:theme', paintTheme);
+    themeBtn.addEventListener('click', () => SB.setTheme(SB.isDark() ? 'light' : 'dark'));
+
+    // drawer
+    const dr = SB.h('div', { class: 'drawer', id: 'chapter-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': '챕터 목록' });
+    dr.innerHTML = '<div class="drawer-panel"><div class="drawer-head"><b>전체 챕터</b><button class="icon-btn" type="button" data-act="close" aria-label="닫기">' + ICON.close + '</button></div><ol>' +
+      '<li><a href="' + home + '"' + (!ch ? ' aria-current="page"' : '') + '><span>·</span><span>처음 페이지</span></a></li>' +
+      SB.CHAPTERS.map((c) => '<li><a href="' + chapHref(c) + '"' + (ch && c.slug === ch.slug ? ' aria-current="page"' : '') + '><span>' + c.n + '</span><span>' + c.t + '</span></a></li>').join('') + '</ol></div>';
+    document.body.appendChild(dr);
+    const menuBtn = top.querySelector('[data-act="menu"]');
+    const open = () => { dr.classList.add('open'); const a = dr.querySelector('[aria-current]') || dr.querySelector('a'); a && a.focus(); };
+    const close = () => { dr.classList.remove('open'); menuBtn.focus(); };
+    menuBtn.addEventListener('click', open);
+    dr.addEventListener('click', (e) => { if (e.target === dr || e.target.closest('[data-act="close"]')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dr.classList.contains('open')) close(); });
+
+    // progress
+    const bar = top.querySelector('.progress');
+    const art = document.querySelector('.article') || document.querySelector('main');
+    const onScroll = () => {
+      if (!art) return;
+      const r = art.getBoundingClientRect();
+      const total = r.height - window.innerHeight * 0.6;
+      const p = SB.clamp((-r.top + 60) / Math.max(1, total), 0, 1);
+      bar.style.width = (p * 100).toFixed(2) + '%';
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // headings: ids + anchors + toc
+    const hs = Array.from(document.querySelectorAll('.article h2'));
+    hs.forEach((h, i) => {
+      if (!h.id) h.id = 's' + (i + 1);
+      const a = SB.h('a', { class: 'anchor', href: '#' + h.id, 'aria-label': '이 절의 링크' }, '#');
+      h.appendChild(a);
+    });
+    const toc = document.querySelector('.toc');
+    if (toc && hs.length) {
+      toc.innerHTML = '<summary>이 장의 구성 (' + hs.length + '절)</summary><ol>' + hs.map((h) => '<li><a href="#' + h.id + '">' + h.firstChild.textContent + '</a></li>').join('') + '</ol>';
+    }
+
+    // pager
+    const pg = document.querySelector('.pager');
+    if (pg && ch) {
+      const prev = SB.CHAPTERS[idx - 1], next = SB.CHAPTERS[idx + 1];
+      pg.innerHTML =
+        (prev ? '<a class="prev" href="' + chapHref(prev) + '"><span>이전 · ' + prev.n + '</span>' + prev.t + '</a>' : '<a class="prev" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>') +
+        (next ? '<a class="next" href="' + chapHref(next) + '"><span>다음 · ' + next.n + '</span>' + next.t + '</a>' : '<a class="next" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>');
+    }
+
+    // footer
+    const ft = SB.h('footer', { class: 'site-foot' });
+    ft.innerHTML = '<div class="shell"><div><b>ShutterBook</b> · 글로벌 셔터 CMOS 이미지 센서를 시뮬레이터로 배우는 인터랙티브 교과서. <a href="https://sensorbook.euiyun.com/" rel="noopener">SensorBook</a>의 구성 방식을 본떠 만들었습니다.</div>' +
+      '<div>시뮬레이터는 개념 이해를 위한 단순화 모델입니다. 제품 수치는 각 장 끝의 출처(제조사 발표·학회 논문)를 따르며, 실제 설계에는 데이터시트를 확인하세요.</div></div>';
+    document.body.appendChild(ft);
+  }
+
+  /* ---------------- MathJax ---------------- */
+  function math() {
+    if (!document.querySelector('.eq, .m')) return;
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global', scale: 1.0 },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'canvas'] }
+    };
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js';
+    s.async = true;
+    s.id = 'MathJax-script';
+    document.head.appendChild(s);
+  }
+
+  SB.ready = function (fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  };
+  SB.ready(function () {
+    chrome();
+    initQuiz();
+    math();
+  });
+})();
+</script>
+<script>
+/* Chapter 04 — GS figures of merit */
+SB.ready(function () {
+  const kB = 1.380649e-23, q = 1.602176634e-19, eps0 = 8.8541878128e-12;
+  const us = (x) => (x >= 1000 ? SB.f(x / 1000, 2) + ' ms' : SB.f(x, x < 10 ? 1 : 0) + ' µs');
+
+  /* ---------- 4-1 PLS ghost ---------- */
+  (function () {
+    const f = SB.frame('sim-pls', { views: [{ key: 'img', label: '기록된 프레임', sub: '', cls: 'scene', aspect: 1.3 }, { key: 'ch', label: '행별 오염 (노출 신호 대비)', sub: '', aspect: 1.3 }], layout: 'two' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'pls', label: 'PLS (가시광 기준)', min: -110, max: -55, step: 1, value: -80, fmt: (v) => v + ' dB' },
+      { id: 'te', label: '노출 시간', min: 5, max: 3000, value: 50, log: true, fmt: us },
+      { id: 'tr', label: '읽기 시간', min: 2, max: 40, step: 0.5, value: 20, fmt: (v) => SB.f(v, 1) + ' ms' },
+      { id: 'v', label: '물체 속도', min: 0.5, max: 12, step: 0.5, value: 5, fmt: (v) => SB.f(v, 1) + ' px/ms' },
+      { id: 'wl', type: 'seg', label: '조명 파장', value: '550', options: [{ v: '550', t: '550 nm' }, { v: '850', t: '850 nm', tone: 'nir' }, { v: '940', t: '940 nm', tone: 'nir' }] },
+      { id: 'hold', type: 'seg', label: '보관 중 조명', value: 'on', options: [{ v: 'on', t: '켜짐 (상시광)' }, { v: 'off', t: '꺼짐 (펄스)', tone: 'gs' }] },
+      { id: 'disp', type: 'seg', label: '표시', value: 'x1', options: [{ v: 'x1', t: '실제 밝기' }, { v: 'x20', t: '×20 강조' }] }
+    ], () => { calc(); img.draw(); ch.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'eff', label: '실효 PLS' }, { id: 'ratio', label: '마지막 행 보관/노출 비' }, { id: 'ghost', label: '고스트 최대 밝기', hl: true }, { id: 'bg', label: '배경 오염 (마지막 행)' }]);
+    const W = 160, H = 120, YC = 62, RAD = 15, BG = 0.06;
+    const PEN = { '550': 0, '850': 6, '940': 10 };
+    let buf = new Float32Array(W * H), prof = [], profBg = [];
+    function calc() {
+      const v = ui.v;
+      const plsDb = v.pls + PEN[v.wl], P = Math.pow(10, plsDb / 20);
+      const te = v.te / 1000, tline = v.tr / H; // ms
+      const on = v.hold === 'on' ? 1 : 0;
+      const x0 = 18 - v.v * te / 2; // object center at mid-exposure = 18 px
+      let gmax = 0;
+      prof = []; profBg = [];
+      for (let y = 0; y < H; y++) {
+        const tRead = te + y * tline;
+        const dy = y + 0.5 - YC;
+        const hc = Math.abs(dy) < RAD ? Math.sqrt(RAD * RAD - dy * dy) : -1;
+        const bgPar = P * on * BG * (tRead - te) / te;
+        let rowMax = 0;
+        for (let x = 0; x < W; x++) {
+          let s = BG; // background during exposure
+          if (hc > 0) {
+            const xm = x0 + v.v * te / 2;
+            if (Math.abs(x + 0.5 - xm) < hc) s = 1;
+            const ta = (x + 0.5 - hc - x0) / v.v, tb = (x + 0.5 + hc - x0) / v.v;
+            const cov = Math.max(0, Math.min(tb, tRead) - Math.max(ta, te));
+            const par = P * on * cov / te;
+            s += par; rowMax = Math.max(rowMax, par);
+          }
+          s += bgPar;
+          buf[y * W + x] = s;
+        }
+        gmax = Math.max(gmax, rowMax);
+        prof.push([y, rowMax]); profBg.push([y, bgPar]);
+      }
+      R.set('eff', SB.f(plsDb, 0) + ' dB (1/' + SB.f(1 / P, 0) + ')');
+      R.set('ratio', SB.f((v.tr * 1000) / v.te, 0) + ' 배');
+      R.set('ghost', SB.sig(gmax * 100, 2) + ' %', gmax > 0.01 ? 'warn' : null);
+      R.set('bg', SB.sig(profBg[H - 1][1] * 100, 2) + ' %');
+    }
+    const off = document.createElement('canvas'); off.width = W; off.height = H;
+    const octx = off.getContext('2d'), id = octx.createImageData(W, H);
+    const img = SB.canvas(f.views.img.cv, (o) => {
+      const g = ui.v.disp === 'x20' ? 20 : 1, d = id.data;
+      for (let i = 0; i < W * H; i++) {
+        const base = Math.min(1, buf[i] >= 1 ? 1 : buf[i] * g);
+        const v = Math.round(255 * Math.pow(base, 1 / 2.2));
+        d[i * 4] = v; d[i * 4 + 1] = v; d[i * 4 + 2] = Math.min(255, v + 4); d[i * 4 + 3] = 255;
+      }
+      octx.putImageData(id, 0, 0);
+      o.ctx.imageSmoothingEnabled = true;
+      o.ctx.drawImage(off, 0, 0, o.w, o.h);
+      SB.text(o.ctx, '→ 물체 이동 방향', o.w - 10, 14, { align: 'right', size: 11, color: '#C9D6D7' });
+      SB.text(o.ctx, '첫 행 (짧게 대기)', 10, 14, { size: 11, color: '#C9D6D7' });
+      SB.text(o.ctx, '끝 행 (가장 오래 대기)', 10, o.h - 12, { size: 11, color: '#C9D6D7' });
+    }, { aspect: 1.3 });
+    const ch = SB.canvas(f.views.ch.cv, (o) => {
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 0, xmax: H, ymin: 1e-6, ymax: 1, ylog: true, pad: [12, 14, 34, 50], xlabel: '행 번호 (위 → 아래)', xticks: [0, 30, 60, 90, 120], yfmt: (t) => (t >= 1e-4 ? SB.f(t * 100, 2) + '%' : SB.sci(t * 100, 0) + '%') });
+      p.axes();
+      p.hline(0.01, SB.c('muted'), '1 %');
+      const clampLog = (arr) => arr.map(([x, y]) => [x, Math.max(1.01e-6, y)]);
+      p.line(clampLog(profBg), SB.c('muted'), 2);
+      p.line(clampLog(prof.filter((q2) => q2[1] > 0)), SB.c('nir'), 2);
+    }, { aspect: 1.3 });
+    f.legend([{ t: '물체 경로의 고스트', c: SB.c('nir'), cf: () => SB.c('nir') }, { t: '배경 오염', c: SB.c('muted'), cf: () => SB.c('muted') }]);
+    f.note('파장 효과는 개념 설명용 가정입니다(850 nm +6 dB, 940 nm +10 dB). 실제 값은 센서마다 측정해야 합니다.');
+    calc();
+  })();
+
+  /* ---------- 4-2 dark current shading ---------- */
+  (function () {
+    const f = SB.frame('sim-dark', { views: [{ key: 'img', label: '빛을 막고 찍은 프레임', sub: '대비 강조', cls: 'scene', aspect: 1.3 }, { key: 'ch', label: '행별 암신호', sub: '', aspect: 1.3 }], layout: 'two' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'T', label: '센서 온도', min: -20, max: 105, step: 1, value: 60, fmt: (v) => v + ' °C' },
+      { id: 'id', label: '저장소 암전류 (25 °C)', min: 1, max: 500, value: 10, log: true, fmt: (v) => SB.f(v, 0) + ' e⁻/s' },
+      { id: 'tr', label: '읽기 시간', min: 2, max: 60, step: 1, value: 30, fmt: (v) => v + ' ms' },
+      { id: 'dbl', label: '두 배가 되는 온도 간격', min: 5, max: 10, step: 0.5, value: 7, fmt: (v) => SB.f(v, 1) + ' °C' }
+    ], () => { calc(); img.draw(); ch.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'idT', label: '현재 온도 암전류' }, { id: 'last', label: '끝 행 암신호', hl: true }, { id: 'shot', label: '그 산탄 잡음' }, { id: 'cmp', label: '읽기 잡음(2 e⁻) 대비' }]);
+    const W = 160, H = 120, RN = 2;
+    const r0 = SB.rng(11);
+    const dsnu = new Float32Array(W * H), z1 = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) { dsnu[i] = Math.exp(0.35 * SB.gauss(r0)) * (r0() < 0.002 ? 25 : 1); z1[i] = SB.gauss(r0); }
+    let buf = new Float32Array(W * H);
+    const idAt = (T) => ui.v.id * Math.pow(2, (T - 25) / ui.v.dbl);
+    function calc() {
+      const v = ui.v, I = idAt(v.T), r = SB.rng(5);
+      for (let y = 0; y < H; y++) {
+        const th = (y / H) * v.tr / 1000;
+        for (let x = 0; x < W; x++) {
+          const k = y * W + x, m = I * th * dsnu[k];
+          buf[k] = SB.poisson(r, m) + RN * z1[k];
+        }
+      }
+      const last = I * v.tr / 1000;
+      R.set('idT', SB.f(I, I < 100 ? 1 : 0) + ' e⁻/s');
+      R.set('last', SB.f(last, last < 10 ? 2 : 0) + ' e⁻');
+      R.set('shot', SB.f(Math.sqrt(last), 2) + ' e⁻');
+      R.set('cmp', Math.sqrt(last) > RN ? '산탄 잡음이 더 큼' : '읽기 잡음이 더 큼', Math.sqrt(last) > RN ? 'warn' : null);
+    }
+    const off = document.createElement('canvas'); off.width = W; off.height = H;
+    const octx = off.getContext('2d'), id = octx.createImageData(W, H);
+    const img = SB.canvas(f.views.img.cv, (o) => {
+      const d = id.data, full = Math.max(12, idAt(ui.v.T) * ui.v.tr / 1000 * 1.6);
+      for (let i = 0; i < W * H; i++) {
+        const v = Math.round(255 * SB.clamp((buf[i] + 4) / (full + 4), 0, 1));
+        d[i * 4] = v; d[i * 4 + 1] = v; d[i * 4 + 2] = v; d[i * 4 + 3] = 255;
+      }
+      octx.putImageData(id, 0, 0);
+      o.ctx.imageSmoothingEnabled = false;
+      o.ctx.drawImage(off, 0, 0, o.w, o.h);
+      SB.text(o.ctx, '표시 범위 0 ~ ' + SB.f(full, 0) + ' e⁻', 10, 14, { size: 11, color: '#C9D6D7', halo: 'rgba(0,0,0,0.5)' });
+    }, { aspect: 1.3 });
+    const ch = SB.canvas(f.views.ch.cv, (o) => {
+      const v = ui.v;
+      const temps = [[25, SB.c('gs')], [v.T, SB.c('nir')], [85, SB.c('rs')]];
+      const ymax = Math.max(1, ...temps.map(([T]) => idAt(T) * v.tr / 1000)) * 1.1;
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 0, xmax: 1080, ymin: 0.01, ymax: Math.max(10, ymax), ylog: true, pad: [12, 14, 34, 46], xlabel: '행 번호 (1080행 기준)', xticks: [0, 270, 540, 810, 1080], yfmt: (t) => SB.f(t, 2) });
+      p.axes();
+      SB.text(o.ctx, '암신호 (e⁻)', p.x0 + 4, p.y0 + 6, { size: 11, color: SB.c('muted') });
+      p.hline(RN, SB.c('muted'), '읽기 잡음 2 e⁻');
+      temps.forEach(([T, c]) => {
+        const pts = []; for (let r = 5; r <= 1080; r += 15) pts.push([r, Math.max(0.0101, idAt(T) * (r / 1080) * v.tr / 1000)]);
+        p.line(pts, c, T === v.T ? 2.6 : 1.6);
+      });
+    }, { aspect: 1.3 });
+    f.legend([{ t: '25 °C', c: SB.c('gs'), cf: () => SB.c('gs') }, { t: '현재 온도', c: SB.c('nir'), cf: () => SB.c('nir') }, { t: '85 °C', c: SB.c('rs'), cf: () => SB.c('rs') }]);
+    calc();
+  })();
+
+  /* ---------- 4-3 storage capacitor designer ---------- */
+  (function () {
+    const f = SB.frame('sim-cap', { views: [{ key: 'xs', label: 'MIM 커패시터 단면 (개념도)', sub: '', aspect: 1.35 }, { key: 'ch', label: '잡음과 커패시턴스', sub: 'C1 = C2', aspect: 1.35 }], layout: 'two' });
+    if (!f) return;
+    const DI = { sio2: ['SiO₂', 3.9], si3n4: ['Si₃N₄', 7], al2o3: ['Al₂O₃', 9], hfo2: ['HfO₂', 20], zro2: ['ZrO₂', 25] };
+    const ui = SB.controls(f.ctls, [
+      { id: 'die', type: 'select', label: '유전막 (대표 유전율)', value: 'hfo2', options: Object.keys(DI).map((k) => ({ v: k, t: DI[k][0] + ' · k≈' + DI[k][1] })) },
+      { id: 'k', label: '유효 유전율 k', min: 3, max: 40, step: 0.5, value: 20, fmt: (v) => SB.f(v, 1) },
+      { id: 't', label: '유전막 두께', min: 1.5, max: 30, value: 8, log: true, fmt: (v) => SB.f(v, 1) + ' nm' },
+      { id: 'a3', label: '3D 면적 배율', min: 1, max: 12, step: 0.5, value: 1, fmt: (v) => '×' + SB.f(v, 1) },
+      { id: 'p', label: '픽셀 피치', min: 1.5, max: 6, step: 0.05, value: 3, fmt: (v) => SB.f(v, 2) + ' µm' },
+      { id: 'fa', label: '커패시터 1개 면적 비율', min: 10, max: 48, step: 1, value: 40, fmt: (v) => v + ' %' },
+      { id: 'cg', label: 'FD 변환 이득', min: 40, max: 200, step: 5, value: 100, fmt: (v) => v + ' µV/e⁻' },
+      { id: 'T', label: '온도', min: 25, max: 105, step: 5, value: 60, fmt: (v) => v + ' °C' },
+      { id: 'th', label: '최대 보관 시간', min: 1, max: 100, value: 33, log: true, fmt: (v) => SB.f(v, 1) + ' ms' },
+      { id: 'dv', label: '허용 전압 변화 ΔV', min: 10, max: 500, value: 50, log: true, fmt: (v) => SB.f(v, 0) + ' µV' },
+      { id: 'vs', label: '신호 스윙(전계 계산용)', min: 0.2, max: 1.5, step: 0.05, value: 1.0, fmt: (v) => SB.f(v, 2) + ' V' }
+    ], (v, idc) => { if (idc === 'die') ui.set('k', DI[v.die][1], true), ui.el.k.refmt(); calc(); xs.draw(); ch.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'dens', label: '실효 밀도' }, { id: 'C', label: '커패시턴스 (1개)' }, { id: 'vn', label: 'kT/C 잡음 (1개)' }, { id: 'en', label: '입력 환산 잡음 (C1+C2)', hl: true }, { id: 'il', label: '허용 누설 전류' }, { id: 'jl', label: '허용 누설 밀도' }, { id: 'E', label: '유전막 전계' }]);
+    let M = {};
+    const noiseE = (CfF, T, cg) => Math.sqrt(2 * kB * (T + 273.15) / (CfF * 1e-15)) / (cg * 1e-6 * 0.85);
+    function calc() {
+      const v = ui.v;
+      const dens = (eps0 * v.k / (v.t * 1e-9)) * 1e15 / 1e12 * v.a3; // fF/µm²
+      const Aµ = v.p * v.p * v.fa / 100; // µm² footprint
+      const C = dens * Aµ; // fF
+      const vn = Math.sqrt(kB * (v.T + 273.15) / (C * 1e-15)) * 1e6; // µV
+      const en = noiseE(C, v.T, v.cg);
+      const I = (C * 1e-15) * (v.dv * 1e-6) / (v.th / 1000); // A
+      const J = I / (Aµ * v.a3 * 1e-8); // A/cm² over effective area
+      const E = v.vs / (v.t * 1e-7) / 1e6; // MV/cm
+      M = { dens, C, vn, en, I, J, E, A: Aµ };
+      R.set('dens', SB.f(dens, 1) + ' fF/µm²');
+      R.set('C', SB.f(C, C < 10 ? 2 : 1) + ' fF');
+      R.set('vn', SB.f(vn, 0) + ' µV rms');
+      R.set('en', SB.f(en, 2) + ' e⁻ rms', en > 5 ? 'warn' : null);
+      R.set('il', SB.eng(I, 'A', 2));
+      R.set('jl', SB.sci(J, 1) + ' A/cm²');
+      R.set('E', SB.f(E, 2) + ' MV/cm', E > 5 ? 'warn' : null);
+    }
+    const xs = SB.canvas(f.views.xs.cv, (o) => {
+      const ctx = o.ctx, v = ui.v, W = o.w, H = o.h;
+      const x0 = 28, x1 = W - 70;
+      const fingers = Math.max(0, Math.round((v.a3 - 1) * 1.2));
+      const tPx = SB.clamp(4 + v.t * 1.3, 5, 40);
+      const hFinger = fingers ? Math.min(H * 0.42, 34 + v.a3 * 8) : 0;
+      const base = fingers ? H - 44 : H * 0.6;
+      const fw = fingers ? (x1 - x0) / (fingers * 2 + 1) : 0;
+      const prof = [[x0, base]];
+      for (let i = 0; i < fingers; i++) { const fx = x0 + fw * (2 * i + 1); prof.push([fx, base], [fx, base - hFinger], [fx + fw, base - hFinger], [fx + fw, base]); }
+      prof.push([x1, base]);
+      // bottom electrode body
+      ctx.fillStyle = '#7C8590';
+      ctx.fillRect(x0, base, x1 - x0, 18);
+      for (let i = 0; i < fingers; i++) { const fx = x0 + fw * (2 * i + 1); ctx.fillRect(fx, base - hFinger, fw, hFinger); }
+      const stroke = (col, w, off) => { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'miter'; ctx.beginPath(); prof.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - off) : ctx.moveTo(x, y - off))); ctx.stroke(); ctx.restore(); };
+      stroke(SB.c('nir'), tPx, tPx / 2);
+      stroke('#A9B2BC', 14, tPx + 7);
+      // thickness dimension
+      const dx = x1 + 14;
+      ctx.save(); ctx.strokeStyle = SB.c('ink-2'); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x1, base); ctx.lineTo(dx + 6, base); ctx.moveTo(x1, base - tPx); ctx.lineTo(dx + 6, base - tPx); ctx.moveTo(dx, base - tPx); ctx.lineTo(dx, base); ctx.stroke(); ctx.restore();
+      SB.text(ctx, SB.f(v.t, 1) + ' nm', dx + 9, base - tPx / 2, { size: 11, weight: 600, color: SB.c('ink') });
+      SB.text(ctx, '상부 전극', x0, base - hFinger - tPx - 26, { size: 11, color: SB.c('ink-2') });
+      SB.text(ctx, '하부 전극', x0, base + 32, { size: 11, color: SB.c('ink-2') });
+      SB.text(ctx, fingers ? '3D 구조 · 면적 ×' + SB.f(v.a3, 1) : '평판 MIM (두께는 과장해 그림)', x1, base + 32, { align: 'right', size: 11, color: SB.c('muted') });
+      SB.text(ctx, '유전막 ' + DI[v.die][0] + ' (k ' + SB.f(v.k, 1) + ')', x0, 16, { size: 12, weight: 600, color: SB.c('nir') });
+      SB.text(ctx, 'C = ' + SB.f(M.C, 1) + ' fF · ' + SB.f(M.E, 2) + ' MV/cm', x0, 34, { size: 12, weight: 600, color: SB.c('ink') });
+    }, { aspect: 1.35 });
+    const ch = SB.canvas(f.views.ch.cv, (o) => {
+      const v = ui.v;
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 2, xmax: 1000, ymin: 0.5, ymax: 40, xlog: true, ylog: true, pad: [12, 14, 34, 40], xlabel: '커패시턴스 C1 = C2 (fF)', xticks: [2, 10, 100, 1000], yticks: [1, 2, 5, 10, 20], yfmt: (t) => SB.f(t, 0), xfmt: (t) => SB.f(t, 0) });
+      p.axes();
+      SB.text(o.ctx, '잡음 (e⁻ rms)', p.x0 + 4, p.y0 + 6, { size: 11, color: SB.c('muted') });
+      const pts = []; for (let lc = Math.log10(2); lc <= 3; lc += 0.02) { const C = Math.pow(10, lc); pts.push([C, noiseE(C, v.T, v.cg)]); }
+      p.line(pts, SB.c('gs'), 2);
+      p.hline(2, SB.c('muted'), '2 e⁻');
+      p.dot(SB.clamp(M.C, 2, 1000), SB.clamp(M.en, 0.5, 40), SB.c('nir'), 5);
+      p.label(SB.clamp(M.C, 2, 1000), SB.clamp(M.en, 0.5, 40), ' 현재 설계', { dx: 8, dy: -10, color: SB.c('ink'), bold: true });
+    }, { aspect: 1.35 });
+    f.note('유전율은 대표값이며 결정상·계면층에 따라 크게 달라집니다. 누설 요구치는 “보관 중 전압 변화 ≤ ΔV” 조건에서 역산한 상한입니다. 입력 환산 잡음은 SF 이득 0.85를 가정했습니다.');
+    calc();
+  })();
+
+  /* ---------- 4-4 photon transfer curve ---------- */
+  (function () {
+    const f = SB.frame('sim-ptc', { views: [{ key: 'ptc', label: '광자 전달 곡선', sub: '로그-로그', aspect: 1.3 }, { key: 'snr', label: 'SNR', sub: '', aspect: 1.3 }], layout: 'two' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'arch', type: 'seg', label: '픽셀 구조', value: 'vd', options: [{ v: '4t', t: '4T 롤링', tone: 'rs' }, { v: 'cd', t: '전하 영역 GS', tone: 'gs' }, { v: 'vd', t: '전압 영역 GS', tone: 'gs' }, { v: '5t', t: '5T FD 저장' }] },
+      { id: 'fwc', label: 'FWC', min: 2000, max: 40000, value: 10000, log: true, fmt: (v) => SB.f(v, 0) + ' e⁻' },
+      { id: 'rn', label: '회로 읽기 잡음', min: 0.5, max: 5, step: 0.1, value: 1.5, fmt: (v) => SB.f(v, 1) + ' e⁻' },
+      { id: 'cap', label: 'VDGS 저장 커패시터', min: 10, max: 200, value: 40, log: true, fmt: (v) => SB.f(v, 0) + ' fF' },
+      { id: 'prnu', label: 'PRNU', min: 0, max: 2, step: 0.1, value: 0.6, fmt: (v) => SB.f(v, 1) + ' %' }
+    ], (v, id) => { if (id === 'arch') ui.show('cap', v.arch === 'vd'); calc(); a.draw(); b.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'floor', label: '잡음 바닥', hl: true }, { id: 'dr', label: '다이내믹 레인지' }, { id: 'smax', label: '최대 SNR' }, { id: 's20', label: 'SNR 20 dB가 되는 신호' }]);
+    let M = {};
+    function floorOf(v) {
+      const kfd = Math.sqrt(kB * 300 * 1.6e-15) / q; // ≈16 e-
+      if (v.arch === '4t' || v.arch === 'cd') return v.rn;
+      if (v.arch === 'vd') { const c = Math.sqrt(2 * kB * 300 / (v.cap * 1e-15)) / (100e-6 * 0.85); return Math.sqrt(v.rn * v.rn + c * c); }
+      return Math.sqrt(v.rn * v.rn + 2 * kfd * kfd);
+    }
+    const tot = (S, fl, pr) => Math.sqrt(fl * fl + S + Math.pow(pr * S, 2));
+    function calc() {
+      const v = ui.v, fl = floorOf(v), pr = v.prnu / 100;
+      let s20 = NaN;
+      for (let lg = 0; lg <= Math.log10(v.fwc); lg += 0.005) { const S = Math.pow(10, lg); if (S / tot(S, fl, pr) >= 10) { s20 = S; break; } }
+      M = { fl, pr };
+      R.set('floor', SB.f(fl, 2) + ' e⁻');
+      R.set('dr', SB.f(SB.dB(v.fwc / fl), 1) + ' dB');
+      R.set('smax', SB.f(SB.dB(v.fwc / tot(v.fwc, fl, pr)), 1) + ' dB');
+      R.set('s20', isFinite(s20) ? SB.f(s20, 0) + ' e⁻' : '도달 못 함');
+    }
+    const a = SB.canvas(f.views.ptc.cv, (o) => {
+      const v = ui.v, fl = M.fl, pr = M.pr;
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 1, xmax: 1e5, ymin: 0.3, ymax: 1000, xlog: true, ylog: true, pad: [12, 14, 34, 44], xlabel: '신호 (e⁻)', yfmt: (t) => SB.f(t, 1), xfmt: (t) => (t >= 1000 ? SB.f(t / 1000, 0) + 'k' : SB.f(t, 0)) });
+      p.axes();
+      SB.text(o.ctx, '잡음 (e⁻)', p.x0 + 4, p.y0 + 6, { size: 11, color: SB.c('muted') });
+      const xs = []; for (let lg = 0; lg <= Math.log10(v.fwc); lg += 0.02) xs.push(Math.pow(10, lg));
+      p.line(xs.map((S) => [S, fl]), SB.c('muted'), 1.6);
+      p.line(xs.map((S) => [S, Math.sqrt(S)]), SB.c('gs'), 1.6);
+      if (pr > 0) p.line(xs.filter((S) => pr * S >= 0.3).map((S) => [S, pr * S]), SB.c('rs'), 1.6);
+      p.line(xs.map((S) => [S, tot(S, fl, pr)]), SB.c('ink'), 2.4);
+      p.vline(v.fwc, SB.c('muted'), 'FWC', { dash: [4, 4] });
+    }, { aspect: 1.3 });
+    const b = SB.canvas(f.views.snr.cv, (o) => {
+      const v = ui.v, fl = M.fl, pr = M.pr;
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 1, xmax: 1e5, ymin: -20, ymax: 50, xlog: true, pad: [12, 14, 34, 40], xlabel: '신호 (e⁻)', xfmt: (t) => (t >= 1000 ? SB.f(t / 1000, 0) + 'k' : SB.f(t, 0)) });
+      p.axes();
+      SB.text(o.ctx, 'SNR (dB)', p.x0 + 4, p.y0 + 6, { size: 11, color: SB.c('muted') });
+      p.hline(0, SB.c('muted'), 'SNR = 1');
+      p.hline(20, SB.c('muted'), 'SNR = 10');
+      const pts = []; for (let lg = 0; lg <= Math.log10(v.fwc); lg += 0.02) { const S = Math.pow(10, lg); pts.push([S, SB.dB(S / tot(S, fl, pr))]); }
+      p.line(pts, SB.c('accent'), 2.4);
+      p.vline(v.fwc, SB.c('muted'), 'FWC', { dash: [4, 4] });
+    }, { aspect: 1.3 });
+    f.legend([{ t: '전체 잡음', c: SB.c('ink'), cf: () => SB.c('ink') }, { t: '잡음 바닥 (읽기 + 저장)', c: SB.c('muted'), cf: () => SB.c('muted') }, { t: '산탄 잡음 √S', c: SB.c('gs'), cf: () => SB.c('gs') }, { t: 'PRNU', c: SB.c('rs'), cf: () => SB.c('rs') }]);
+    f.note('5T FD 저장형은 C_FD = 1.6 fF의 리셋 잡음이 두 번(√2배) 남는다고, 전압 영역 GS는 변환 이득 100 µV/e⁻에서 두 커패시터의 kT/C가 더해진다고 가정했습니다.');
+    calc();
+  })();
+});
+</script>
+</body>
+</html>

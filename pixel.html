@@ -1,0 +1,2039 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글로벌 셔터 픽셀 해부 · ShutterBook</title>
+<meta name="description" content="4T 핀드 포토다이오드 픽셀에서 출발해 FD 저장형, 전하 영역(저장 다이오드), 전압 영역(커패시터) 글로벌 셔터 픽셀과 적층·하이브리드 본딩 구조까지. 동작 애니메이션과 3D 모델.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%230F1A1C%22/%3E%3Cg%20fill%3D%22%231FB5A6%22%3E%3Crect%20x%3D%226%22%20y%3D%227%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2212.2%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2217.4%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2222.6%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ShutterBook — 글로벌 셔터 이미지 센서 교과서
+   Layout concept: one reading column (≈42rem) with lab panels that break out to the wide track.
+   Color carries meaning: teal = global shutter, amber = rolling shutter, crimson = near-infrared. */
+
+:root {
+  --bg: #F3F6F6;
+  --surface: #FFFFFF;
+  --surface-2: #EAF0F0;
+  --surface-3: #DCE5E5;
+  --ink: #0F1A1C;
+  --ink-2: #3D4E53;
+  --muted: #627378;
+  --line: #CFD9DA;
+  --line-2: #E2E9EA;
+  --accent: #007A70;
+  --accent-strong: #005E56;
+  --accent-wash: rgba(0, 122, 112, 0.09);
+  --on-accent: #FFFFFF;
+
+  /* semantic encodings (validated as a set, light surface) */
+  --gs: #008A7E;
+  --rs: #C26A00;
+  --nir: #B4144E;
+  --gs-wash: rgba(0, 138, 126, 0.12);
+  --rs-wash: rgba(194, 106, 0, 0.13);
+  --nir-wash: rgba(180, 20, 78, 0.11);
+
+  /* colour-filter channels */
+  --ch-r: #D23A3A;
+  --ch-g: #2B8C45;
+  --ch-b: #2F5BD3;
+  --ch-ir: #5E1A3D;
+
+  --good: #1C7C35;
+  --bad: #B3261E;
+  --scene: #0E1416;          /* backdrop of simulated scenes */
+  --scene-ink: #E9F1F1;
+
+  --shadow: 0 1px 2px rgba(15, 26, 28, 0.05), 0 6px 20px rgba(15, 26, 28, 0.05);
+
+  --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --fs-0: 0.8125rem;
+  --fs-1: 0.9375rem;
+  --fs-2: 1.0625rem;
+  --fs-3: 1.25rem;
+  --fs-4: 1.5625rem;
+  --fs-5: 2.0rem;
+  --fs-6: 2.75rem;
+
+  --measure: 42rem;
+  --wide: 70rem;
+  --gutter: clamp(16px, 4vw, 40px);
+  --r1: 6px;
+  --r2: 10px;
+  --top-h: 56px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1213;
+    --surface: #111A1C;
+    --surface-2: #172326;
+    --surface-3: #203034;
+    --ink: #E2ECEC;
+    --ink-2: #A7B9BC;
+    --muted: #7A8E92;
+    --line: #26363A;
+    --line-2: #1C2A2D;
+    --accent: #3CC2B4;
+    --accent-strong: #6ED8CC;
+    --accent-wash: rgba(60, 194, 180, 0.12);
+    --on-accent: #04201D;
+    --gs: #1F9E92;
+    --rs: #C97E12;
+    --nir: #E8487A;
+    --gs-wash: rgba(31, 158, 146, 0.18);
+    --rs-wash: rgba(201, 126, 18, 0.18);
+    --nir-wash: rgba(232, 72, 122, 0.16);
+    --ch-r: #F06363;
+    --ch-g: #45B86A;
+    --ch-b: #6B92FF;
+    --ch-ir: #B9467E;
+    --good: #46C46A;
+    --bad: #FF7A70;
+    --scene: #070B0C;
+    --scene-ink: #E9F1F1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0B1213;
+  --surface: #111A1C;
+  --surface-2: #172326;
+  --surface-3: #203034;
+  --ink: #E2ECEC;
+  --ink-2: #A7B9BC;
+  --muted: #7A8E92;
+  --line: #26363A;
+  --line-2: #1C2A2D;
+  --accent: #3CC2B4;
+  --accent-strong: #6ED8CC;
+  --accent-wash: rgba(60, 194, 180, 0.12);
+  --on-accent: #04201D;
+  --gs: #1F9E92;
+  --rs: #C97E12;
+  --nir: #E8487A;
+  --gs-wash: rgba(31, 158, 146, 0.18);
+  --rs-wash: rgba(201, 126, 18, 0.18);
+  --nir-wash: rgba(232, 72, 122, 0.16);
+  --ch-r: #F06363;
+  --ch-g: #45B86A;
+  --ch-b: #6B92FF;
+  --ch-ir: #B9467E;
+  --good: #46C46A;
+  --bad: #FF7A70;
+  --scene: #070B0C;
+  --scene-ink: #E9F1F1;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--top-h) + 16px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-2);
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg, canvas { max-width: 100%; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+::selection { background: var(--accent-wash); }
+h1, h2, h3, h4 { line-height: 1.3; text-wrap: balance; color: var(--ink); letter-spacing: -0.015em; }
+h2 { font-size: var(--fs-4); font-weight: 700; margin: 3.2em 0 0.7em; }
+h3 { font-size: var(--fs-3); font-weight: 600; margin: 2.2em 0 0.5em; }
+h4 { font-size: var(--fs-2); font-weight: 600; margin: 1.6em 0 0.4em; }
+p { margin: 0 0 1em; }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: normal; color: var(--ink); background: linear-gradient(transparent 62%, var(--accent-wash) 62%); }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 3rem 0; }
+ul, ol { padding-left: 1.3em; margin: 0 0 1em; }
+li { margin: 0.25em 0; }
+li::marker { color: var(--muted); }
+small { font-size: var(--fs-0); }
+.en { color: var(--muted); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto;
+  height: var(--top-h); padding-inline: var(--gutter);
+  display: flex; align-items: center; gap: 14px;
+}
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand:hover { color: var(--ink); }
+.brand-mark { width: 26px; height: 22px; display: grid; gap: 3px; }
+.brand-mark i { display: block; height: 3.5px; border-radius: 2px; background: var(--gs); transition: transform .45s cubic-bezier(.3,.7,.2,1); }
+.brand:hover .brand-mark i:nth-child(2) { transform: translateX(4px); }
+.brand:hover .brand-mark i:nth-child(3) { transform: translateX(8px); }
+.brand:hover .brand-mark i:nth-child(4) { transform: translateX(12px); }
+.brand:hover .brand-mark i { background: var(--rs); }
+.brand small { font-weight: 500; color: var(--muted); font-size: var(--fs-0); }
+.crumb { color: var(--muted); font-size: var(--fs-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.crumb b { color: var(--ink-2); font-weight: 600; }
+.top-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.icon-btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  height: 34px; min-width: 34px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: var(--fs-1);
+}
+.icon-btn:hover { border-color: var(--muted); }
+.icon-btn svg { width: 16px; height: 16px; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--accent); width: 0; transition: width .1s linear; }
+
+.drawer {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: rgba(5, 12, 13, 0.45);
+}
+.drawer.open { display: block; }
+.drawer-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: min(380px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--line);
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  overflow-y: auto;
+}
+.drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.drawer-head b { font-size: var(--fs-1); color: var(--muted); font-weight: 600; }
+.drawer ol { list-style: none; padding: 0; margin: 0; }
+.drawer li { margin: 0; }
+.drawer a { display: grid; grid-template-columns: 2.2em 1fr; gap: 4px; padding: 9px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; line-height: 1.45; }
+.drawer a:hover { background: var(--surface-2); }
+.drawer a[aria-current="page"] { background: var(--accent-wash); }
+.drawer a span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- page shells ---------- */
+main { display: block; }
+.shell { max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto; padding-inline: var(--gutter); }
+.prose { max-width: var(--measure); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+/* ---------- chapter header ---------- */
+.ch-head { padding-block: clamp(36px, 7vw, 72px) 8px; }
+.ch-label { display: flex; align-items: baseline; gap: 12px; color: var(--muted); font-size: var(--fs-1); margin-bottom: 10px; }
+.ch-label .ch-n { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ch-head h1 { font-size: clamp(var(--fs-5), 5vw, var(--fs-6)); font-weight: 700; letter-spacing: -0.03em; margin: 0 0 0.45em; line-height: 1.18; }
+.ch-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); margin-bottom: 1.2em; }
+.goals { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px 22px 12px; margin: 26px 0 8px; }
+.goals b { display: block; font-size: var(--fs-1); color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.goals ul { margin: 0 0 6px; }
+.toc { margin: 18px 0 0; font-size: var(--fs-1); }
+.toc summary { cursor: pointer; color: var(--ink-2); font-weight: 600; list-style: none; display: inline-flex; gap: 8px; align-items: center; }
+.toc summary::-webkit-details-marker { display: none; }
+.toc summary::before { content: "▸"; color: var(--muted); transition: transform .2s; }
+.toc[open] summary::before { transform: rotate(90deg); }
+.toc ol { margin: 10px 0 0; padding-left: 1.6em; color: var(--ink-2); columns: 2 18rem; column-gap: 2rem; }
+.toc a { color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+/* ---------- article content ---------- */
+.article { padding-bottom: 40px; overflow-x: clip; overflow-clip-margin: 12px; }
+.article > * { max-width: var(--measure); margin-inline: auto; }
+.article > .wide, .article > .sim, .article > figure.wide, .article > .tbl-wrap.wide { max-width: var(--wide); }
+.article h2 { scroll-margin-top: calc(var(--top-h) + 16px); }
+.article h2 .anchor, .article h3 .anchor { opacity: 0; margin-left: 8px; color: var(--muted); text-decoration: none; font-weight: 400; }
+.article h2:hover .anchor, .article h3:hover .anchor { opacity: 1; }
+.lead-in { font-size: var(--fs-3); color: var(--ink-2); line-height: 1.65; }
+
+figure { margin: 2.2em auto; }
+.fig-box svg { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+figcaption b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.fig-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: clamp(12px, 2.4vw, 22px); overflow-x: auto; }
+
+.eq { margin: 1.6em auto; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r2); overflow-x: auto; text-align: center; }
+.eq mjx-container[display="true"] { margin: 0 !important; }
+.eq + p.where { font-size: var(--fs-1); color: var(--ink-2); margin-top: -0.6em; }
+mjx-container { color: inherit; }
+mjx-container[jax="SVG"] > svg { overflow: visible; }
+
+.tbl-wrap { overflow-x: auto; margin: 1.8em auto; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-1); line-height: 1.55; }
+th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-2); }
+thead th { background: var(--surface-2); color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl-caption { font-size: var(--fs-1); color: var(--ink-2); margin: -1.2em auto 1.8em; }
+
+.box { margin: 1.8em auto; padding: 16px 20px; background: var(--surface-2); border-radius: var(--r2); }
+.box > :last-child { margin-bottom: 0; }
+.box-t { font-weight: 700; display: block; margin-bottom: 4px; color: var(--ink); }
+.box.calc { background: var(--surface); border: 1px dashed var(--line); }
+.box.calc .box-t::before { content: "= "; color: var(--accent); }
+.box.field { background: var(--surface); border: 1px solid var(--line); }
+.box.warn { background: var(--rs-wash); }
+
+.try { margin: 0.8em auto 2.4em; font-size: var(--fs-1); color: var(--ink-2); }
+.try b { color: var(--ink); }
+.try ul { margin: 6px 0 0; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86em; font-weight: 600; padding: 0.05em 0.55em; border-radius: 999px; border: 1px solid currentColor; line-height: 1.6; white-space: nowrap; vertical-align: 0.06em; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.gs { color: var(--gs); }
+.chip.rs { color: var(--rs); }
+.chip.nir { color: var(--nir); }
+
+.sources { font-size: var(--fs-0); color: var(--muted); line-height: 1.6; }
+.sources ol { padding-left: 1.4em; }
+.sources a { color: var(--ink-2); }
+sup.ref a { text-decoration: none; font-size: 0.75em; padding: 0 1px; }
+
+/* ---------- simulation panel ---------- */
+.sim {
+  margin: 2.4em auto 0.8em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.sim-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.sim-tag { font-size: var(--fs-0); font-weight: 700; color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim-title { font-weight: 600; font-size: var(--fs-2); margin: 0; flex: 1 1 14rem; min-width: 0; line-height: 1.4; }
+.sim-tools { display: flex; gap: 6px; }
+.sim-body { padding: 16px; display: grid; gap: 14px; }
+.sim-views { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.sim-views.one { grid-template-columns: 1fr; }
+.sim-views.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.sim-views.quad { grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) { .sim-views.quad { grid-template-columns: 1fr; } }
+.view { position: relative; min-width: 0; }
+.view-l { font-size: var(--fs-0); color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+.view-l b { color: var(--ink-2); font-weight: 600; }
+.cv { display: block; width: 100%; border-radius: 8px; background: var(--surface-2); touch-action: pan-y; }
+.cv.scene { background: var(--scene); }
+.cv.grab { cursor: grab; touch-action: none; }
+.cv.grab:active { cursor: grabbing; }
+
+.ctls { display: grid; gap: 12px 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; }
+.ctl { display: grid; gap: 4px; min-width: 0; }
+.ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--fs-1); }
+.ctl-top label, .ctl-top span.l { color: var(--ink-2); }
+.ctl-top output { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.ctl select { font: inherit; font-size: var(--fs-1); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--surface-2); justify-self: start; max-width: 100%; }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: var(--fs-1); padding: 4px 12px; border-radius: 7px; cursor: pointer; line-height: 1.6; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); font-weight: 600; }
+.seg button[data-tone="gs"][aria-pressed="true"] { color: var(--gs); }
+.seg button[data-tone="rs"][aria-pressed="true"] { color: var(--rs); }
+.seg button[data-tone="nir"][aria-pressed="true"] { color: var(--nir); }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-1); color: var(--ink-2); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; margin: 0; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--accent) 0 var(--p, 50%), var(--surface-3) var(--p, 50%) 100%); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: var(--surface-3); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); margin-top: -7px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--fs-1); padding: 5px 12px; border-radius: 8px; cursor: pointer; line-height: 1.6; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+.reads { display: flex; flex-wrap: wrap; gap: 8px 10px; padding-top: 2px; }
+.read { background: var(--surface-2); border-radius: 8px; padding: 6px 12px; min-width: 7.5rem; flex: 1 1 7.5rem; }
+.read span { display: block; font-size: var(--fs-0); color: var(--muted); line-height: 1.4; }
+.read b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.5; font-size: var(--fs-1); }
+.read.hl { background: var(--accent-wash); }
+.read.warn { background: var(--rs-wash); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--fs-0); color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.sim-note { font-size: var(--fs-0); color: var(--muted); margin: 0; }
+
+/* ---------- quiz ---------- */
+.quiz-set { counter-reset: q; }
+.quiz { margin: 1.4em auto; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); }
+.quiz .q { font-weight: 600; margin: 0 0 10px; }
+.quiz .q::before { counter-increment: q; content: "Q" counter(q) ". "; color: var(--accent); }
+.quiz .opts { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.quiz .opts li { margin: 0; }
+.quiz .opt {
+  appearance: none; width: 100%; text-align: left; font: inherit; font-size: var(--fs-1); line-height: 1.55; color: var(--ink);
+  background: var(--surface-2); border: 1px solid transparent; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+  display: grid; grid-template-columns: 1.6em 1fr; gap: 4px;
+}
+.quiz .opt:hover { border-color: var(--line); }
+.quiz .opt .k { color: var(--muted); font-weight: 600; }
+.quiz .opt.correct { background: color-mix(in srgb, var(--good) 14%, var(--surface)); border-color: var(--good); }
+.quiz .opt.wrong { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: var(--bad); }
+.quiz .opt[disabled] { cursor: default; }
+.quiz .why { display: none; margin-top: 12px; font-size: var(--fs-1); color: var(--ink-2); border-top: 1px solid var(--line-2); padding-top: 10px; }
+.quiz.done .why { display: block; }
+.quiz .verdict { font-weight: 700; margin-right: 6px; }
+.quiz .verdict.ok { color: var(--good); }
+.quiz .verdict.no { color: var(--bad); }
+.score { margin: 1em auto; font-size: var(--fs-1); color: var(--ink-2); }
+
+.summary ol { counter-reset: s; list-style: none; padding: 0; }
+.summary li { counter-increment: s; position: relative; padding-left: 2.2em; margin: 0.7em 0; }
+.summary li::before { content: counter(s); position: absolute; left: 0; top: 0.1em; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent-wash); color: var(--accent); font-weight: 700; font-size: 0.85em; display: grid; place-items: center; }
+
+/* ---------- prev/next + footer ---------- */
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 56px auto 0; max-width: var(--measure); }
+.pager a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r2); text-decoration: none; color: var(--ink); background: var(--surface); line-height: 1.45; }
+.pager a:hover { border-color: var(--accent); }
+.pager span { display: block; font-size: var(--fs-0); color: var(--muted); }
+.pager .next { text-align: right; grid-column: 2; }
+.site-foot { margin-top: 72px; border-top: 1px solid var(--line); padding-block: 28px 48px; color: var(--muted); font-size: var(--fs-0); line-height: 1.7; }
+.site-foot .shell { display: grid; gap: 10px; }
+.site-foot a { color: var(--ink-2); }
+
+/* ---------- index page ---------- */
+.hero { padding-block: clamp(28px, 6vw, 64px) clamp(24px, 4vw, 40px); overflow-x: clip; }
+.hero-grid { display: grid; gap: clamp(24px, 4vw, 48px); grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; }
+.hero-kicker { color: var(--ink-2); font-size: var(--fs-1); margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hero h1 { font-size: clamp(2.3rem, 5.4vw, 4.1rem); line-height: 1.12; letter-spacing: -0.04em; font-weight: 700; margin: 0 0 24px; }
+.hero h1 .ln { display: block; white-space: nowrap; transition: transform .9s cubic-bezier(.2,.8,.15,1); will-change: transform; }
+.hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.9em); }
+.hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.8em); }
+.hero-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); max-width: 34rem; margin-bottom: 26px; }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-cta a { padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: var(--fs-1); }
+.hero-cta .go { background: var(--accent); color: var(--on-accent); }
+.hero-cta .go:hover { background: var(--accent-strong); color: var(--on-accent); }
+.hero-cta .alt { border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+.hero-cta .alt:hover { border-color: var(--muted); color: var(--ink); }
+.hero-lab { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
+.hero-lab .cv { aspect-ratio: 16 / 10; }
+.hero-lab-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.hero-lab-bar p { margin: 0; font-size: var(--fs-0); color: var(--muted); }
+.stats-strip { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 26px; font-size: var(--fs-1); color: var(--muted); }
+.stats-strip b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+.section { padding-block: clamp(36px, 6vw, 64px) 0; }
+.section-h { font-size: var(--fs-4); margin: 0 0 8px; }
+.section-sub { color: var(--ink-2); margin: 0 0 22px; max-width: var(--measure); }
+
+.spec { width: 100%; }
+.spec td:first-child { width: 9.5rem; font-weight: 700; font-size: var(--fs-2); color: var(--ink); white-space: nowrap; font-variant-numeric: normal; }
+.spec td:nth-child(2) { color: var(--ink-2); }
+.spec td:last-child { color: var(--muted); font-size: var(--fs-0); white-space: nowrap; }
+
+.chapters { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+.chapters li { margin: 0; }
+.chapters a { display: grid; grid-template-columns: 3rem minmax(0, 1fr); column-gap: 12px; height: 100%; padding: 16px 18px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-decoration: none; color: var(--ink); }
+.chapters a:hover { border-color: var(--accent); }
+.chapters .n { font-size: 1.55rem; line-height: 1.25; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.chapters h3 { margin: 0 0 4px; font-size: var(--fs-3); }
+.chapters p { margin: 0 0 8px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.chapters .meta { font-size: var(--fs-0); color: var(--muted); }
+.paths { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.path { padding: 16px 18px; border-radius: 12px; background: var(--surface-2); }
+.path h3 { margin: 0 0 4px; font-size: var(--fs-2); }
+.path p { margin: 0 0 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.path .hops { display: flex; flex-wrap: wrap; gap: 6px; }
+.path .hops a { font-size: var(--fs-0); font-weight: 600; padding: 3px 9px; border-radius: 6px; background: var(--surface); color: var(--ink); text-decoration: none; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.path .hops a:hover { border-color: var(--accent); color: var(--accent); }
+.howto { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.howto div { padding-top: 10px; border-top: 2px solid var(--line); }
+.howto b { display: block; margin-bottom: 4px; }
+.howto p { margin: 0; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+
+.glossary-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 1em auto; }
+.glossary-tools input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); flex: 1 1 16rem; min-width: 0; }
+dl.gloss { margin: 0 auto; }
+dl.gloss div { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--fs-1); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero h1 .ln { white-space: normal; }
+  .hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.6em); }
+  .hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.2em); }
+}
+@media (max-width: 560px) {
+  body { font-size: 1rem; line-height: 1.72; }
+  .brand small { display: none; }
+  .crumb { display: none; }
+  .sim-body { padding: 12px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager .next { grid-column: 1; }
+  .spec td:first-child { white-space: normal; width: auto; }
+  .spec td:last-child { white-space: normal; }
+  .goals { padding: 14px 16px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+  .topbar, .sim-tools, .pager { display: none; }
+}
+
+/* ---------- SVG figure vocabulary ---------- */
+.fig text { font-family: var(--font); fill: var(--ink-2); font-size: 13px; }
+.fig .t-s { font-size: 11.5px; fill: var(--muted); }
+.fig .t-b { font-weight: 600; fill: var(--ink); }
+.fig .t-gs { fill: var(--gs); font-weight: 600; }
+.fig .t-rs { fill: var(--rs); font-weight: 600; }
+.fig .t-nir { fill: var(--nir); font-weight: 600; }
+.fig .t-on { fill: #fff; font-weight: 600; }
+.fig .k-ink { fill: var(--ink); } .fig .k-ink2 { fill: var(--ink-2); } .fig .k-muted { fill: var(--muted); }
+.fig .k-surf { fill: var(--surface); } .fig .k-surf2 { fill: var(--surface-2); } .fig .k-surf3 { fill: var(--surface-3); } .fig .k-bg { fill: var(--bg); }
+.fig .k-gs { fill: var(--gs); } .fig .k-rs { fill: var(--rs); } .fig .k-nir { fill: var(--nir); }
+.fig .k-gsw { fill: var(--gs-wash); } .fig .k-rsw { fill: var(--rs-wash); } .fig .k-nirw { fill: var(--nir-wash); }
+.fig .k-r { fill: var(--ch-r); } .fig .k-g { fill: var(--ch-g); } .fig .k-b { fill: var(--ch-b); } .fig .k-ir { fill: var(--ch-ir); }
+.fig .k-line { fill: var(--line); } .fig .k-none { fill: none; }
+.fig .l-ink { stroke: var(--ink); fill: none; } .fig .l-ink2 { stroke: var(--ink-2); fill: none; } .fig .l-line { stroke: var(--line); fill: none; } .fig .l-muted { stroke: var(--muted); fill: none; }
+.fig .l-gs { stroke: var(--gs); fill: none; } .fig .l-rs { stroke: var(--rs); fill: none; } .fig .l-nir { stroke: var(--nir); fill: none; }
+.fig .l-surf { stroke: var(--surface); } .fig .l-bg { stroke: var(--bg); }
+.fig .w1 { stroke-width: 1; } .fig .w15 { stroke-width: 1.5; } .fig .w2 { stroke-width: 2; } .fig .w3 { stroke-width: 3; }
+.fig .dash { stroke-dasharray: 4 4; }
+.fig-pair { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.fig-pair > div { min-width: 0; }
+.fig-sub { font-size: var(--fs-1); font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 560px) {
+  .fig text { font-size: 17px; }
+  .fig .t-s { font-size: 15.5px; }
+  .spec td:last-child { display: none; }
+  .fig .m-hide { display: none; }
+  .fig-box svg.wide-svg { min-width: 640px; }
+  .fig text.wide-t { font-size: 15px; }
+}
+</style>
+<script>try{var t=localStorage.getItem('sb-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-slug="pixel">
+<main id="main" class="shell">
+  <header class="ch-head prose">
+    <div class="ch-label"><span class="ch-n">Chapter 03</span><span>픽셀 구조</span></div>
+    <h1>글로벌 셔터 픽셀 해부</h1>
+    <p class="ch-lede">롤링 셔터 픽셀은 포토다이오드에 쌓인 전하를 곧바로 읽습니다. 글로벌 셔터 픽셀은 노출이 끝난 뒤 읽을 차례가 올 때까지 신호를 어딘가에 붙잡아 두어야 합니다. 그 “어딘가”를 무엇으로, 어디에 만드느냐가 글로벌 셔터 픽셀 설계의 거의 전부입니다.</p>
+    <div class="goals"><b>이 장을 마치면</b>
+      <ul>
+        <li>4T 핀드 포토다이오드 픽셀의 동작과 상관 이중 샘플링(CDS)을 설명할 수 있다.</li>
+        <li>FD 저장형, 전하 영역형, 전압 영역형 GS 픽셀의 동작 순서를 그릴 수 있다.</li>
+        <li>각 구조에서 kTC 노이즈가 상쇄되는지, 어디서 새로 생기는지 판단할 수 있다.</li>
+        <li>적층과 픽셀 단위 하이브리드 본딩이 GS 픽셀의 면적 문제를 어떻게 푸는지 설명할 수 있다.</li>
+      </ul>
+    </div>
+    <details class="toc" open></details>
+  </header>
+
+  <article class="article">
+    <h2>출발점: 4T 핀드 포토다이오드 픽셀</h2>
+    <p>오늘날 CMOS 이미지 센서의 기본형은 핀드 포토다이오드(pinned photodiode, PPD)와 트랜지스터 4개로 이루어진 4T 픽셀입니다. 포토다이오드가 빛을 전자로 바꿔 모으고, 전송 게이트(TX)가 그 전하를 플로팅 디퓨전(FD)으로 옮깁니다. FD는 작은 커패시터라서 전하가 들어오면 전압이 변하고, 소스 팔로워(SF)가 그 전압을 열(column) 신호선으로 내보냅니다. 리셋 트랜지스터(RST)는 FD를 비우고, 선택 트랜지스터(SEL)는 읽을 행을 고릅니다.</p>
+    <p>핵심은 읽는 순서입니다. FD를 리셋한 직후의 전압(리셋 레벨)을 먼저 읽고, TX로 전하를 옮긴 뒤 전압(신호 레벨)을 다시 읽어 둘을 뺍니다. 이것이 <strong>상관 이중 샘플링</strong>(correlated double sampling, CDS)입니다. 두 값에 같은 리셋 잡음이 들어 있으므로 빼면 사라집니다.</p>
+    <div class="eq">\[ \sigma_{kTC} = \frac{\sqrt{k T C_{\mathrm{FD}}}}{q} \;[e^-], \qquad V_{\mathrm{out}} = V_{\mathrm{reset}} - V_{\mathrm{signal}} = \frac{q\,N_e}{C_{\mathrm{FD}}}\,G_{\mathrm{SF}} \]</div>
+    <p class="where">\(k\)는 볼츠만 상수, \(T\)는 절대온도, \(C_{\mathrm{FD}}\)는 FD 커패시턴스, \(G_{\mathrm{SF}}\)는 소스 팔로워 이득(약 0.8~0.9)입니다. \(q/C_{\mathrm{FD}}\)를 변환 이득(conversion gain, µV/e⁻)이라 부릅니다.</p>
+    <div class="box calc"><span class="box-t">계산 예: FD 리셋 잡음</span>
+      <p>\(C_{\mathrm{FD}} = 1.6\) fF, 300 K이면</p><div class="eq" style="margin:0.6em 0;background:transparent;border:0;padding:0">\[ \sqrt{kTC} = \sqrt{1.38\times10^{-23} \cdot 300 \cdot 1.6\times10^{-15}} \approx 2.6\times10^{-18}\ \mathrm{C} \]</div><p>전자로 약 16 e⁻ rms입니다. 변환 이득은 \(q/C \approx 100\) µV/e⁻. CDS가 없다면 이 16 e⁻가 그대로 읽기 잡음이 되지만, 4T 픽셀은 CDS로 이것을 지우고 1~2 e⁻ 이하의 잡음을 얻습니다.</p>
+    </div>
+
+    <h2>FD에 저장하면 안 되나: 네 가지 구조</h2>
+    <p>글로벌 셔터를 만드는 가장 간단한 방법은 노출이 끝날 때 모든 픽셀의 TX를 동시에 열어 전하를 FD로 옮겨 두는 것입니다. 포토다이오드를 전체 리셋할 오버플로 게이트(AB, anti-blooming)만 하나 더 달면 되므로 5T 픽셀이면 충분합니다. 문제는 순서가 뒤집힌다는 데 있습니다. 신호가 이미 FD에 들어 있으니 리셋 레벨을 먼저 읽을 수 없고, 신호를 읽은 뒤 다시 리셋한 레벨을 빼면 <em>서로 다른 리셋</em>이라 잡음이 상쇄되지 않습니다. 게다가 FD는 n+ 접합이라 누설 전류가 크고 빛에도 민감해, 기다리는 동안 신호가 오염됩니다.</p>
+    <p>그래서 실제 글로벌 셔터 픽셀은 FD 앞이나 뒤에 별도의 저장소를 둡니다. 포토다이오드와 FD 사이에 <strong>저장 다이오드</strong>(storage diode, SD; 메모리 노드라고도 함)를 두면 <strong>전하 영역</strong>(charge-domain) GS, FD 뒤에 <strong>커패시터</strong>를 두고 전압을 샘플링하면 <strong>전압 영역</strong>(voltage-domain) GS입니다.</p>
+
+    <figure class="fig wide">
+      <div class="fig-box">
+        <svg class="wide-svg" viewBox="0 0 900 420" role="img" aria-labelledby="f31">
+          <title id="f31">네 가지 픽셀 구조의 신호 경로 비교</title>
+          <defs>
+            <marker id="ar31" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="k-muted"/></marker>
+          </defs>
+          <g font-size="13">
+            <text x="10" y="40" class="t-b">4T 롤링</text>
+            <text x="10" y="140" class="t-b">5T FD 저장</text>
+            <text x="10" y="240" class="t-b">전하 영역 GS</text>
+            <text x="10" y="340" class="t-b">전압 영역 GS</text>
+          </g>
+          <!-- row 1 -->
+          <g transform="translate(130 18)">
+            <rect x="0" y="0" width="70" height="40" rx="6" class="k-surf2 l-line w1"/><text x="35" y="25" text-anchor="middle" class="t-b">PD</text>
+            <path d="M70 20h48" class="l-muted w15" marker-end="url(#ar31)"/><text x="94" y="12" text-anchor="middle" class="t-s">TX</text>
+            <rect x="120" y="0" width="70" height="40" rx="6" class="k-surf2 l-line w1"/><text x="155" y="25" text-anchor="middle" class="t-b">FD</text>
+            <path d="M190 20h38" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="230" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="260" y="25" text-anchor="middle">SF</text>
+            <path d="M290 20h38" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="330" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="360" y="25" text-anchor="middle">SEL</text>
+            <path d="M390 20h38" class="l-muted w15" marker-end="url(#ar31)"/>
+            <text x="436" y="25" class="t-s">열 회로 (CDS·ADC)</text>
+            <text x="575" y="25" class="t-s">저장소 없음 · 진짜 CDS ✓</text>
+          </g>
+          <!-- row 2 -->
+          <g transform="translate(130 118)">
+            <rect x="0" y="0" width="70" height="40" rx="6" class="k-surf2 l-line w1"/><text x="35" y="25" text-anchor="middle" class="t-b">PD</text>
+            <path d="M35 40v24" class="l-muted w15" marker-end="url(#ar31)"/><text x="44" y="58" class="t-s">AB → 드레인</text>
+            <path d="M70 20h48" class="l-gs w2" marker-end="url(#ar31)"/><text x="94" y="12" text-anchor="middle" class="t-gs">TX 전체</text>
+            <rect x="120" y="0" width="70" height="40" rx="6" class="k-gsw l-gs w2"/><text x="155" y="25" text-anchor="middle" class="t-b">FD</text>
+            <path d="M190 20h38" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="230" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="260" y="25" text-anchor="middle">SF</text>
+            <path d="M290 20h38" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="330" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="360" y="25" text-anchor="middle">SEL</text>
+            <text x="575" y="16" class="t-s">FD가 저장소 · CDS 불가 ✗</text>
+            <text x="575" y="34" class="t-s">FD 누설·빛 민감</text>
+          </g>
+          <!-- row 3 -->
+          <g transform="translate(130 218)">
+            <rect x="0" y="0" width="70" height="40" rx="6" class="k-surf2 l-line w1"/><text x="35" y="25" text-anchor="middle" class="t-b">PD</text>
+            <path d="M35 40v24" class="l-muted w15" marker-end="url(#ar31)"/><text x="44" y="58" class="t-s">AB → 드레인</text>
+            <path d="M70 20h48" class="l-gs w2" marker-end="url(#ar31)"/><text x="94" y="12" text-anchor="middle" class="t-gs">SG 전체</text>
+            <rect x="120" y="0" width="70" height="40" rx="6" class="k-gsw l-gs w2"/><text x="155" y="25" text-anchor="middle" class="t-b">SD</text>
+            <path d="M190 20h48" class="l-muted w15" marker-end="url(#ar31)"/><text x="214" y="12" text-anchor="middle" class="t-s">TX 행별</text>
+            <rect x="240" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="270" y="25" text-anchor="middle" class="t-b">FD</text>
+            <path d="M300 20h28" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="330" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="360" y="25" text-anchor="middle">SF·SEL</text>
+            <text x="575" y="16" class="t-s">차광된 저장 다이오드 · 진짜 CDS ✓</text>
+            <text x="575" y="34" class="t-s">전하 전송 두 번, SD 면적 필요</text>
+          </g>
+          <!-- row 4 -->
+          <g transform="translate(130 318)">
+            <rect x="0" y="0" width="70" height="40" rx="6" class="k-surf2 l-line w1"/><text x="35" y="25" text-anchor="middle" class="t-b">PD</text>
+            <path d="M35 40v24" class="l-muted w15" marker-end="url(#ar31)"/><text x="44" y="58" class="t-s">AB → 드레인</text>
+            <path d="M70 20h48" class="l-gs w2" marker-end="url(#ar31)"/><text x="94" y="12" text-anchor="middle" class="t-gs">TX 전체</text>
+            <rect x="120" y="0" width="60" height="40" rx="6" class="k-surf2 l-line w1"/><text x="150" y="25" text-anchor="middle" class="t-b">FD</text>
+            <path d="M180 20h28" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="210" y="0" width="56" height="40" rx="6" class="k-surf2 l-line w1"/><text x="238" y="25" text-anchor="middle">SF1</text>
+            <path d="M266 20h22" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="290" y="-14" width="66" height="30" rx="6" class="k-gsw l-gs w2"/><text x="323" y="6" text-anchor="middle" class="t-b">C1 리셋</text>
+            <rect x="290" y="24" width="66" height="30" rx="6" class="k-gsw l-gs w2"/><text x="323" y="44" text-anchor="middle" class="t-b">C2 신호</text>
+            <path d="M356 20h22" class="l-muted w15" marker-end="url(#ar31)"/>
+            <rect x="380" y="0" width="70" height="40" rx="6" class="k-surf2 l-line w1"/><text x="415" y="25" text-anchor="middle">SF2·SEL</text>
+            <text x="575" y="16" class="t-s">커패시터에 전압 저장 · FD kTC 상쇄 ✓</text>
+            <text x="575" y="34" class="t-s">대신 C1·C2의 샘플링 kTC가 남음</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption><b>그림 3-1.</b> 네 가지 픽셀의 신호 경로. 청록색 테두리가 글로벌 셔터에서 신호를 붙잡아 두는 저장소이고, 청록 화살표는 전 화소가 동시에 움직이는 전역(global) 펄스입니다. AB는 포토다이오드를 전체 리셋하고 과잉 전하를 버리는 오버플로 게이트입니다.</figcaption>
+    </figure>
+
+    <h2>전하 영역 GS: 저장 다이오드에 전하를 맡긴다</h2>
+    <p>전하 영역 GS 픽셀에는 포토다이오드 옆에 또 하나의 핀드 다이오드, 즉 저장 다이오드가 있습니다. 노출이 끝나면 저장 게이트(SG)를 전체 픽셀에서 동시에 열어 전하를 저장 다이오드로 옮깁니다. 이후 행 단위 읽기는 4T와 똑같습니다. FD를 리셋해 리셋 레벨을 읽고, TX로 저장 다이오드의 전하를 FD로 옮겨 신호 레벨을 읽습니다. 저장 다이오드가 FD와 분리되어 있으므로 <strong>진짜 CDS</strong>가 가능하고, 잡음이 매우 낮습니다.</p>
+    <p>대가는 세 가지입니다. 첫째, 저장 다이오드는 빛을 받으면 안 됩니다. 앞면 조사(FSI)에서는 금속 차광막으로 덮지만, 빛이 뒷면에서 들어오는 BSI에서는 실리콘 속에서 빛을 막아야 하므로 텅스텐 차광막, 깊은 트렌치 분리(DTI), 두꺼운 에피층을 조합합니다. 둘째, 전하를 두 번(PD→SD, SD→FD) 완전히 옮겨야 하므로 전위 설계가 까다롭고 잔상(lag)이 생기기 쉽습니다. 셋째, 저장 다이오드가 포토다이오드만큼의 전하를 담아야 하므로 픽셀 면적을 크게 차지합니다.</p>
+    <div class="box field"><span class="box-t">최근 사례: 2.2 µm BSI 전하 영역 GS</span>
+      <p>Tower 연구진은 IISW 2025에서 65 nm 적층 BSI 공정으로 만든 2.2 µm 전하 영역 GS 픽셀을 발표했습니다. 저장 노드를 실리콘 속에 완전히 묻고, 앞뒷면 모두에 텅스텐 차광막을 두었으며, 픽셀 사이와 픽셀 안에 깊이가 다른 두 종류의 DTI를 8.5 µm 에피층에 넣었습니다. 잡음 0.6 e⁻, 선형 FWC 5,400 e⁻, 기생 광감도의 역수(1/PLS)는 백색광에서 10,380(−80.3 dB)이었고, 같은 구조를 6 µm 에피로 만들면 1/PLS가 4,300에 그쳤습니다.<sup class="ref"><a href="#ref-1">1</a></sup></p>
+    </div>
+
+    <h2>전압 영역 GS: 커패시터에 전압을 맡긴다</h2>
+    <p>전압 영역 GS 픽셀은 FD까지는 4T와 비슷하지만, 첫 번째 소스 팔로워(SF1) 뒤에 샘플링 스위치와 커패시터 두 개(C1, C2)를 둡니다. 노출이 끝날 무렵 모든 픽셀이 동시에 FD를 리셋하고 그 전압을 C1에 샘플링한 뒤, TX를 열어 전하를 FD로 옮기고 신호 전압을 C2에 샘플링합니다. 행 단위 읽기에서는 C1과 C2를 두 번째 소스 팔로워(SF2)로 차례로 읽어 뺍니다. FD의 리셋 잡음은 두 샘플에 똑같이 들어 있으므로 상쇄됩니다.</p>
+    <p>하지만 커패시터에 전압을 샘플링하는 동작 자체가 새 kTC 잡음을 만듭니다. 이 잡음은 상쇄되지 않으므로 커패시터를 크게 만드는 것이 곧 저잡음 설계입니다.</p>
+    <div class="eq">\[ \sigma_{e} \approx \frac{1}{G_{\mathrm{SF1}}\;\mathrm{CG}}\sqrt{\frac{kT}{C_1} + \frac{kT}{C_2}} \]</div>
+    <p class="where">CG는 FD의 변환 이득(V/e⁻), \(G_{\mathrm{SF1}}\)은 첫 소스 팔로워의 이득입니다. 예를 들어 CG = 100 µV/e⁻, \(G_{\mathrm{SF1}} = 0.85\)일 때 C1 = C2 = 20 fF이면 약 7.6 e⁻, 100 fF이면 약 3.4 e⁻입니다. 4장 실험 4-3에서 직접 계산해 봅니다.</p>
+    <p>전압 영역 방식의 장점은 저장소를 실리콘이 아닌 배선층(BEOL)의 MIM 커패시터로 만들 수 있다는 점입니다. 빛이 닿기 어려운 곳에 두거나, 아예 아래 웨이퍼로 옮길 수 있으니 기생 광감도가 매우 낮습니다. 커패시터 쌍을 하나 더 두면 서로 다른 두 노출이나 두 변환 이득을 저장해 HDR도 만들 수 있습니다. OmniVision은 IISW 2023에서 별도 웨이퍼의 고밀도 MiM 커패시터를 픽셀 단위로 연결한 3.45 µm 이중 저장 VDGS 픽셀로 셔터 효율 −100 dB 이하, 잡음 약 2 e⁻, FWC 20,000 e⁻ 이상, 이중 노출 HDR 90 dB를 보고했습니다.<sup class="ref"><a href="#ref-2">2</a></sup></p>
+
+    <section class="sim" id="sim-ops" data-num="실험 3-1" data-title="픽셀 동작 순서 따라가기"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>네 구조를 차례로 골라 “다음 단계”를 눌러 보세요. 리셋 레벨과 신호 레벨을 읽는 순서가 어떻게 다른지 비교합니다.</li>
+        <li>5T FD 저장형에서 대기 단계를 지날 때 FD에 섞여 드는 누설·기생 전하(붉은 점)를 보세요. 전하 영역·전압 영역형은 저장소가 차광되어 훨씬 적습니다.</li>
+        <li>각 구조의 마지막 단계에서 표시되는 잡음 판정(kTC 상쇄 여부)을 확인하세요.</li>
+      </ul>
+    </div>
+
+    <h2>적층: 저장소를 아래층으로</h2>
+    <p>글로벌 셔터 픽셀의 고질적 문제는 면적입니다. 포토다이오드 옆에 저장소와 트랜지스터를 늘어놓으면 빛을 받는 면적이 줄고, 픽셀을 작게 만들기 어렵습니다. 적층(stacking)은 이 문제를 수직 방향으로 풉니다. 빛을 받는 픽셀 웨이퍼와 회로를 담은 로직 웨이퍼를 따로 만들어 접합하는 것이죠.</p>
+    <p>처음에는 웨이퍼 가장자리의 관통 전극(TSV)으로 두 층을 연결했지만, 지금은 구리 패드와 산화막을 동시에 붙이는 <strong>하이브리드 본딩</strong>(Cu–Cu hybrid bonding)으로 픽셀마다 연결할 수 있습니다. TechInsights의 분석에 따르면 웨이퍼-웨이퍼 하이브리드 본딩 피치는 가장 공격적인 경우 1.4 µm 수준입니다.<sup class="ref"><a href="#ref-3">3</a></sup> 픽셀마다 연결이 가능해지자 전압 영역 GS의 커패시터와 두 번째 소스 팔로워를 아래 웨이퍼로 내리고, 위 웨이퍼의 실리콘은 거의 전부 포토다이오드에 쓰는 구조가 가능해졌습니다. 소니 Pregius S도 메모리를 포토다이오드 기판에서 신호 처리 영역으로 옮긴 적층 구조로 2.25 µm 픽셀(IMX900)까지 줄였고,<sup class="ref"><a href="#ref-4">4</a></sup> OmniVision의 OG0TB는 3층 적층 BSI로 2.2 µm 픽셀 400×400 센서를 1.69 mm 모듈에 담았습니다.<sup class="ref"><a href="#ref-5">5</a></sup></p>
+
+    <section class="sim" id="sim-3d" data-num="실험 3-2" data-title="적층형 전압 영역 GS 픽셀 3D 모델"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>드래그해서 돌려 보세요. “분해” 슬라이더를 올리면 층이 벌어지며 내부가 보입니다.</li>
+        <li>광선을 근적외선으로 바꾸면 빛이 실리콘 깊숙이, 회로층 근처까지 들어갑니다. 5장에서 다룰 NIR 흡수 깊이와 4장의 기생 광감도가 왜 연결되는지 보입니다.</li>
+        <li>층 목록에서 하나를 고르면 그 층만 강조됩니다. 커패시터가 어디에 있는지 찾아보세요.</li>
+      </ul>
+    </div>
+
+    <h2>면적 예산: 왜 GS 픽셀은 작게 만들기 어려운가</h2>
+    <p>같은 피치에서 각 구조가 포토다이오드에 얼마의 면적을 줄 수 있는지 계산해 보면, 적층의 의미가 분명해집니다. 아래 실험은 공정 규칙을 크게 단순화한 개념 모델입니다. 트랜지스터 하나와 분리 영역의 면적을 고정하고, 전하 영역형은 저장 다이오드가 포토다이오드와 같은 양의 전하를 담는다고 가정합니다.</p>
+    <section class="sim" id="sim-area" data-num="실험 3-3" data-title="픽셀 면적 예산 (개념 모델)"></section>
+    <div class="try"><b>해볼 것</b>
+      <ul>
+        <li>피치를 2.2 µm로 줄여 보세요. 비적층 전하 영역형은 포토다이오드 면적이 급격히 줄어 FWC가 작아집니다.</li>
+        <li>적층형 전압 영역 GS는 커패시터를 아래 웨이퍼로 내려 포토다이오드 면적을 거의 유지합니다. 대신 커패시터 면적은 픽셀 면적으로 제한됩니다.</li>
+      </ul>
+    </div>
+
+    <h2>세 구조 비교</h2>
+    <div class="tbl-wrap wide">
+      <table>
+        <thead><tr><th>항목</th><th>5T FD 저장</th><th>전하 영역 GS (SD)</th><th>전압 영역 GS (C1·C2)</th></tr></thead>
+        <tbody>
+          <tr><td>저장소</td><td>FD (n+ 접합)</td><td>핀드 저장 다이오드</td><td>MIM·MOS 커패시터</td></tr>
+          <tr><td>CDS</td><td>불가 (kTC 잔존)</td><td>진짜 CDS</td><td>FD kTC 상쇄, 커패시터 kTC 추가</td></tr>
+          <tr><td>대표 잡음</td><td>10 e⁻ 이상</td><td>1 e⁻ 안팎까지</td><td>수 e⁻ (커패시터 크기에 좌우)</td></tr>
+          <tr><td>기생 광감도</td><td>나쁨</td><td>차광·DTI·두꺼운 에피로 개선</td><td>저장소를 배선층·아래층에 두어 유리</td></tr>
+          <tr><td>저장 중 누설</td><td>큼</td><td>작음 (핀드 구조)</td><td>커패시터·스위치 누설 관리 필요</td></tr>
+          <tr><td>면적 부담</td><td>작음</td><td>저장 다이오드가 큼</td><td>커패시터가 큼 → 적층으로 해결</td></tr>
+          <tr><td>HDR 확장</td><td>어려움</td><td>제한적</td><td>커패시터 쌍 추가로 이중 노출·이중 이득</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-caption"><b>표 3-1.</b> 수치는 구조별 경향입니다. 같은 구조라도 공정과 설계에 따라 크게 달라집니다.</p>
+
+    <h2>핵심 정리</h2>
+    <div class="summary">
+      <ol>
+        <li>4T 픽셀은 리셋 레벨을 먼저 읽고 신호를 나중에 읽는 CDS로 FD의 kTC 잡음(수십 e⁻)을 지운다.</li>
+        <li>FD에 신호를 저장하는 5T 글로벌 셔터는 간단하지만 CDS가 불가능하고 누설·빛 오염에 약하다.</li>
+        <li>전하 영역 GS는 차광된 저장 다이오드에 전하를 보관해 진짜 CDS를 지키지만, 면적과 차광이 어렵다.</li>
+        <li>전압 영역 GS는 커패시터에 리셋·신호 전압을 샘플링한다. FD 잡음은 상쇄되지만 \(kT/C\) 잡음이 새로 생겨 큰 커패시터가 필요하다.</li>
+        <li>픽셀 단위 하이브리드 본딩으로 커패시터와 회로를 아래 웨이퍼로 내리면, 작은 피치에서도 포토다이오드 면적과 저장 용량을 함께 확보할 수 있다.</li>
+      </ol>
+    </div>
+
+    <h2>확인 퀴즈</h2>
+    <div class="quiz-set">
+      <div class="quiz" data-a="2">
+        <p class="q">FD 저장형(5T) 글로벌 셔터 픽셀에서 kTC 잡음이 상쇄되지 않는 이유는?</p>
+        <ol class="opts"><li>소스 팔로워가 하나뿐이라서</li><li>신호를 먼저 읽고 다시 리셋한 레벨을 읽어, 두 값에 서로 다른 리셋 잡음이 들어서</li><li>포토다이오드가 핀드 구조가 아니라서</li><li>열 ADC가 느려서</li></ol>
+        <div class="why">CDS는 같은 리셋 동작이 두 샘플에 공통으로 들어 있어야 성립합니다. FD에 신호가 이미 있으면 리셋 레벨을 먼저 읽을 수 없습니다.</div>
+      </div>
+      <div class="quiz" data-a="4">
+        <p class="q">전하 영역 GS 픽셀의 저장 다이오드에 요구되는 조건이 <em>아닌</em> 것은?</p>
+        <ol class="opts"><li>빛을 받지 않도록 차광되어야 한다</li><li>포토다이오드의 전하를 완전히 받아야 한다</li><li>대기 중 누설이 작아야 한다</li><li>샘플링 커패시터만큼 큰 kT/C 잡음을 견뎌야 한다</li></ol>
+        <div class="why">저장 다이오드는 전하를 그대로 보관하고 진짜 CDS로 읽으므로 샘플링 kTC 잡음이 없습니다. kT/C 샘플링 잡음은 전압 영역 방식의 문제입니다.</div>
+      </div>
+      <div class="quiz" data-a="3">
+        <p class="q">전압 영역 GS에서 C1 = C2를 20 fF에서 80 fF로 키우면 샘플링 잡음(전자 환산)은?</p>
+        <ol class="opts"><li>1/4로 준다</li><li>변하지 않는다</li><li>1/2로 준다</li><li>2배가 된다</li></ol>
+        <div class="why">전압 잡음은 \(\sqrt{kT/C}\)에 비례하므로 C가 4배면 1/2이 됩니다.</div>
+      </div>
+      <div class="quiz" data-a="1">
+        <p class="q">픽셀 단위 하이브리드 본딩이 전압 영역 GS에 특히 유리한 이유는?</p>
+        <ol class="opts"><li>커패시터와 두 번째 소스 팔로워를 아래 웨이퍼로 내려 위층 실리콘을 포토다이오드에 쓸 수 있어서</li><li>본딩 패드가 빛을 반사해 QE가 높아져서</li><li>TSV가 필요 없어 ADC가 빨라져서</li><li>구리가 kTC 잡음을 줄여서</li></ol>
+        <div class="why">픽셀마다 아래층과 연결할 수 있으면 저장 커패시터를 포토다이오드와 겹쳐(아래에) 배치할 수 있습니다. 면적 문제를 수직으로 푸는 것입니다.</div>
+      </div>
+    </div>
+
+    <div class="sources"><b>출처</b>
+      <ol>
+        <li id="ref-1">T. Yokoyama et al., “Charge domain type 2.2um BSI Global Shutter pixel with Dual Depth DTI, Produced by thick-film epitaxial process,” <a href="https://imagesensors.org/Past%20Workshops/2025%20Workshop/2025%20Papers/R01.4_Yokoyama.pdf" rel="noopener">IISW 2025</a>.</li>
+        <li id="ref-2">B. Cremers et al., “A 5MPixel Image Sensor with a 3.45µm Dual Storage Global Shutter Back-Side Illuminated Pixel with 90dB DR,” <a href="https://imagesensors.org/Past%20Workshops/2023%20Workshop/2023%20Papers/R45.pdf" rel="noopener">IISW 2023</a>.</li>
+        <li id="ref-3">D. McGrath, “State-of-the-Art CMOS Image Sensors: Looking Under the Hood,” <a href="https://imagesensors.org/Past%20Workshops/2025%20Workshop/2025%20Papers/R01.1_McGrath.pdf" rel="noopener">IISW 2025</a> (TechInsights).</li>
+        <li id="ref-4"><a href="https://sony.mediaroom.com/2023-10-18-Sony-Semiconductor-Solutions-to-Launch-1-3-Type-Lens-Compatible,-3-2-Effective-Megapixel-Stacked-CMOS-Image-Sensor-with-Global-Shutter-for-Industrial-Use" rel="noopener">Sony IMX900 보도자료</a> (2023-10-18).</li>
+        <li id="ref-5"><a href="https://www.ovt.com/products/og0tb" rel="noopener">OmniVision OG0TB 제품 페이지</a>.</li>
+      </ol>
+    </div>
+  </article>
+  <nav class="pager" aria-label="챕터 이동"></nav>
+</main>
+<script>
+/* ShutterBook core: page chrome, theme, controls, canvas helpers, plotting, quiz. */
+(function () {
+  'use strict';
+  const SB = (window.SB = window.SB || {});
+  const root = document.documentElement;
+  const BASE = root.getAttribute('data-base') || '';
+
+  SB.CHAPTERS = [
+    { n: '01', slug: 'exposure', t: '노출의 시간 구조', d: '리셋 → 적분 → 읽기. 롤링과 글로벌 셔터는 이 세 동작의 타이밍이 다르다.', k: '타이밍 다이어그램 · 라인 시간 · 병렬 읽기' },
+    { n: '02', slug: 'rolling', t: '롤링 셔터 왜곡 실험실', d: '스큐, 젤로, 프로펠러, 플래시 밴드, LED 플리커를 직접 만들어 본다.', k: '왜곡 5종 시뮬레이터' },
+    { n: '03', slug: 'pixel', t: '글로벌 셔터 픽셀 해부', d: '4T 픽셀에서 출발해 전하 영역·전압 영역 GS 픽셀과 적층 구조까지.', k: '픽셀 동작 애니메이션 · 3D 적층 모델' },
+    { n: '04', slug: 'metrics', t: 'GS의 성능 지표', d: 'PLS(기생 광감도), 저장 노드 누설, kTC 노이즈, 저장 커패시터 설계.', k: 'PLS 고스트 · 커패시터 설계기 · PTC' },
+    { n: '05', slug: 'nir', t: '실리콘과 근적외선', d: '850·940 nm 빛은 실리콘 깊숙이 들어간다. 흡수 깊이와 QE, 광포획 구조.', k: '흡수 깊이 몬테카를로 · QE 계산기' },
+    { n: '06', slug: 'ir-gs', t: 'IR 조명과 글로벌 셔터', d: '능동 조명을 노출 창에 맞추면 무엇이 좋아지는가. 스트로브와 주변광 억제.', k: '스트로브 동기화 · 주변광 SNR · 시선 추적' },
+    { n: '07', slug: 'rgbir', t: 'RGB-IR 센서', d: '한 센서로 컬러와 NIR을 함께. 필터 배열, IR 누설 보정, 최신 하이브리드 셔터.', k: 'CFA 탐험기 · 분광 응답 · 처리 파이프라인' },
+    { n: '08', slug: 'physical-ai', t: 'Physical AI와 글로벌 셔터', d: '로봇·휴머노이드·자율주행이 왜 글로벌 셔터를 원하는가. VIO, 깊이, 동기화, 지연.', k: 'VIO 오차 · 지연 예산 · 스테레오 깊이' },
+    { n: '09', slug: 'landscape', t: '제품 지형도와 로드맵', d: '대표 GS·NIR·RGB-IR 센서를 한눈에. 픽셀 피치와 해상도, 적층 기술의 흐름.', k: '센서 지도 · 연표' },
+    { n: '10', slug: 'review', t: '종합 퀴즈와 용어집', d: '전체 내용을 점검하는 종합 퀴즈와 검색 가능한 용어집.', k: '퀴즈 20문항 · 용어 66개' }
+  ];
+  SB.base = BASE;
+
+  /* ---------------- theme ---------------- */
+  const THEME_KEY = 'sb-theme';
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  SB.isDark = function () {
+    const a = root.getAttribute('data-theme');
+    if (a) return a === 'dark';
+    return !!(mq && mq.matches);
+  };
+  function themeChanged() {
+    colorCache = null;
+    document.dispatchEvent(new CustomEvent('sb:theme'));
+  }
+  SB.setTheme = function (t) {
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+    else root.removeAttribute('data-theme');
+    try { if (t) localStorage.setItem(THEME_KEY, t); else localStorage.removeItem(THEME_KEY); } catch (e) { /* storage unavailable */ }
+    themeChanged();
+  };
+  if (mq) {
+    const h = () => { if (!root.getAttribute('data-theme')) themeChanged(); };
+    if (mq.addEventListener) mq.addEventListener('change', h); else if (mq.addListener) mq.addListener(h);
+  }
+
+  /* ---------------- colors ---------------- */
+  let colorCache = null;
+  SB.c = function (name) {
+    if (!colorCache) colorCache = {};
+    if (!(name in colorCache)) colorCache[name] = getComputedStyle(root).getPropertyValue('--' + name).trim() || '#888';
+    return colorCache[name];
+  };
+  SB.rgba = function (color, a) {
+    let c = color.trim();
+    if (c.startsWith('rgba')) return c.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgba($1,$2,$3,' + a + ')');
+    if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', ',' + a + ')');
+    if (c[0] === '#') {
+      if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+      const n = parseInt(c.slice(1, 7), 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    return c;
+  };
+  SB.mix = function (c1, c2, t) {
+    const p = (c) => { c = c.trim(); if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]; const n = parseInt(c.slice(1, 7), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+    const a = p(c1), b = p(c2);
+    return 'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',') + ')';
+  };
+  /* wavelength (nm) → approximate display colour; NIR shown as crimson by convention */
+  SB.waveColor = function (nm) {
+    if (nm >= 760) return SB.c('nir');
+    let r = 0, g = 0, b = 0;
+    if (nm < 440) { r = -(nm - 440) / 60; b = 1; }
+    else if (nm < 490) { g = (nm - 440) / 50; b = 1; }
+    else if (nm < 510) { g = 1; b = -(nm - 510) / 20; }
+    else if (nm < 580) { r = (nm - 510) / 70; g = 1; }
+    else if (nm < 645) { r = 1; g = -(nm - 645) / 65; }
+    else { r = 1; }
+    let f = 1;
+    if (nm < 420) f = 0.4 + 0.6 * (nm - 380) / 40; else if (nm > 700) f = 0.4 + 0.6 * (760 - nm) / 60;
+    const k = (v) => Math.round(255 * Math.pow(Math.max(0, v) * f, 0.8));
+    return 'rgb(' + k(r) + ',' + k(g) + ',' + k(b) + ')';
+  };
+
+  /* ---------------- numbers ---------------- */
+  SB.f = function (x, d) {
+    if (d === undefined) d = 2;
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  };
+  SB.fx = function (x, d) {
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: d });
+  };
+  SB.sig = function (x, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+    return SB.f(Number(x.toFixed(Math.min(d, 12))), d);
+  };
+  const PREF = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p'], [1e-15, 'f']];
+  SB.eng = function (x, unit, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0 ' + (unit || '');
+    const ax = Math.abs(x);
+    for (const [s, p] of PREF) {
+      if (ax >= s * 0.9995) return SB.sig(x / s, n || 3) + ' ' + p + (unit || '');
+    }
+    return SB.sig(x / 1e-15, n || 3) + ' f' + (unit || '');
+  };
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  SB.sci = function (x, d) {
+    if (!isFinite(x) || x === 0) return SB.f(x, d);
+    const e = Math.floor(Math.log10(Math.abs(x)));
+    const m = x / Math.pow(10, e);
+    const ms = Math.abs(m - 1) < 1e-9 && !d ? '' : SB.fx(m, d === undefined ? 1 : d) + '×';
+    return ms + '10' + String(e).split('').map((c) => SUP[c] || c).join('');
+  };
+  SB.clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  SB.lerp = (a, b, t) => a + (b - a) * t;
+  SB.interp = function (table, x) { /* table: [[x,y],...] ascending */
+    if (x <= table[0][0]) return table[0][1];
+    if (x >= table[table.length - 1][0]) return table[table.length - 1][1];
+    let lo = 0, hi = table.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (table[m][0] <= x) lo = m; else hi = m; }
+    const t = (x - table[lo][0]) / (table[hi][0] - table[lo][0]);
+    return table[lo][1] + t * (table[hi][1] - table[lo][1]);
+  };
+  SB.dB = (r) => 20 * Math.log10(r);
+
+  /* ---------------- random ---------------- */
+  SB.rng = function (seed) {
+    let a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  SB.gauss = function (r) {
+    let u = 0, v = 0;
+    while (u === 0) u = r();
+    while (v === 0) v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  SB.poisson = function (r, lam) {
+    if (lam <= 0) return 0;
+    if (lam > 40) return Math.max(0, Math.round(lam + Math.sqrt(lam) * SB.gauss(r)));
+    const L = Math.exp(-lam); let k = 0, p = 1;
+    do { k++; p *= r(); } while (p > L);
+    return k - 1;
+  };
+
+  /* ---------------- motion preference ---------------- */
+  SB.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ---------------- canvas ---------------- */
+  SB.canvas = function (cv, draw, opts) {
+    opts = opts || {};
+    const ctx = cv.getContext('2d');
+    const o = { cv: cv, ctx: ctx, w: 0, h: 0, dpr: 1 };
+    let lastW = -1;
+    function size(force) {
+      const w = Math.max(40, Math.round(cv.clientWidth || cv.parentElement.clientWidth || 300));
+      if (!force && w === lastW) return false;
+      lastW = w;
+      let asp = typeof opts.aspect === 'function' ? opts.aspect(w) : (opts.aspect || 1.6);
+      let h = opts.height ? (typeof opts.height === 'function' ? opts.height(w) : opts.height) : Math.round(w / asp);
+      if (opts.maxH) h = Math.min(h, opts.maxH);
+      if (opts.minH) h = Math.max(h, opts.minH);
+      cv.style.height = h + 'px';
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      o.w = w; o.h = h; o.dpr = dpr;
+      return true;
+    }
+    o.draw = function () {
+      ctx.setTransform(o.dpr, 0, 0, o.dpr, 0, 0);
+      ctx.clearRect(0, 0, o.w, o.h);
+      draw && draw(o);
+    };
+    o.resize = function () { size(true); o.draw(); };
+    size(true);
+    Promise.resolve().then(() => o.draw());
+    const target = cv.parentElement || cv;
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { if (size(false)) o.draw(); });
+      ro.observe(target);
+    } else {
+      window.addEventListener('resize', () => { if (size(false)) o.draw(); });
+    }
+    document.addEventListener('sb:theme', () => o.draw());
+    return o;
+  };
+
+  /* pointer helper: returns position in CSS px relative to canvas */
+  SB.pointer = function (cv, handlers) {
+    let down = false;
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    cv.addEventListener('pointerdown', (e) => { down = true; try { cv.setPointerCapture(e.pointerId); } catch (_) { } handlers.down && handlers.down(pos(e), e); });
+    cv.addEventListener('pointermove', (e) => { if (down) handlers.drag && handlers.drag(pos(e), e); else handlers.move && handlers.move(pos(e), e); });
+    const up = (e) => { if (!down) return; down = false; handlers.up && handlers.up(pos(e), e); };
+    cv.addEventListener('pointerup', up);
+    cv.addEventListener('pointercancel', up);
+    cv.addEventListener('pointerleave', (e) => { if (!down) handlers.leave && handlers.leave(e); });
+  };
+
+  /* ---------------- animation ---------------- */
+  SB.anim = function (el, step, opts) {
+    opts = opts || {};
+    let playing = opts.autoplay !== false && !SB.reduced;
+    let visible = false, raf = 0, last = 0;
+    const listeners = [];
+    function frame(t) {
+      raf = 0;
+      if (!playing || !visible) { last = 0; return; }
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt, t / 1000);
+      raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (playing && visible && !raf) raf = requestAnimationFrame(frame); }
+    if (window.IntersectionObserver) {
+      new IntersectionObserver((es) => { visible = es[0].isIntersecting; kick(); }, { rootMargin: '80px' }).observe(el);
+    } else { visible = true; kick(); }
+    const api = {
+      get playing() { return playing; },
+      play() { playing = true; last = 0; kick(); listeners.forEach((f) => f(true)); },
+      pause() { playing = false; listeners.forEach((f) => f(false)); },
+      toggle() { playing ? api.pause() : api.play(); },
+      onState(f) { listeners.push(f); },
+      step(dt) { step(dt || 1 / 60, performance.now() / 1000); }
+    };
+    return api;
+  };
+
+  /* ---------------- DOM helpers ---------------- */
+  SB.h = function (tag, attrs, html) {
+    const e = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  };
+  const ICON = {
+    play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"/></svg>',
+    reset: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-4.6 3H1.8A6.6 6.6 0 1 0 8 1.4V0L4.8 2.2 8 4.4z" fill="currentColor"/></svg>',
+    sun: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"/></g></svg>',
+    moon: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 1.2A6.8 6.8 0 1 0 14.8 11 5.6 5.6 0 0 1 10.8 1.2z" fill="currentColor"/></svg>',
+    menu: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+  SB.icon = ICON;
+
+  /* ---------------- sim frame ---------------- */
+  /* Builds the panel inside <section class="sim" id="..." data-num="..." data-title="...">.
+     spec.views: [{key, label, sub, aspect, cls, height, minH, maxH}]  spec.layout: 'one'|'two'|'' */
+  SB.frame = function (id, spec) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    spec = spec || {};
+    el.innerHTML = '';
+    const head = SB.h('div', { class: 'sim-head' });
+    head.appendChild(SB.h('span', { class: 'sim-tag', text: el.dataset.num || '실험' }));
+    head.appendChild(SB.h('h3', { class: 'sim-title', text: el.dataset.title || '' }));
+    const tools = SB.h('div', { class: 'sim-tools' });
+    head.appendChild(tools);
+    el.appendChild(head);
+    const body = SB.h('div', { class: 'sim-body' });
+    el.appendChild(body);
+    const views = {};
+    if (spec.views && spec.views.length) {
+      const vw = SB.h('div', { class: 'sim-views ' + (spec.layout || '') });
+      spec.views.forEach((v) => {
+        const box = SB.h('div', { class: 'view' });
+        if (v.label !== undefined) {
+          const lab = SB.h('div', { class: 'view-l' });
+          lab.innerHTML = '<b>' + v.label + '</b><span>' + (v.sub || '') + '</span>';
+          box.appendChild(lab);
+        }
+        const cv = SB.h('canvas', { class: 'cv ' + (v.cls || ''), role: 'img', 'aria-label': v.alt || v.label || '' });
+        box.appendChild(cv);
+        vw.appendChild(box);
+        views[v.key] = { box: box, cv: cv, label: box.querySelector('.view-l span'), spec: v };
+      });
+      body.appendChild(vw);
+    }
+    const ctls = SB.h('div', { class: 'ctls' });
+    const reads = SB.h('div', { class: 'reads' });
+    body.appendChild(ctls);
+    body.appendChild(reads);
+    const f = { el: el, body: body, views: views, ctls: ctls, reads: reads, tools: tools };
+    f.note = function (html) { const p = SB.h('p', { class: 'sim-note' }, html); body.appendChild(p); return p; };
+    f.legend = function (items, where) {
+      const lg = SB.h('div', { class: 'legend' });
+      lg.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+      (where || body).insertBefore(lg, ctls);
+      f._legend = lg; f._legendItems = items;
+      return lg;
+    };
+    f.refreshLegend = function () {
+      if (!f._legend) return;
+      const items = f._legendItems.map((it) => Object.assign({}, it, { c: typeof it.cf === 'function' ? it.cf() : it.c }));
+      f._legend.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+    };
+    document.addEventListener('sb:theme', () => f.refreshLegend());
+    f.playButton = function (anim) {
+      const b = SB.h('button', { class: 'btn', type: 'button' });
+      const sync = (p) => { b.innerHTML = (p ? ICON.pause + ' 일시정지' : ICON.play + ' 재생'); b.setAttribute('aria-pressed', p ? 'true' : 'false'); };
+      b.addEventListener('click', () => anim.toggle());
+      anim.onState(sync); sync(anim.playing);
+      tools.appendChild(b);
+      return b;
+    };
+    f.button = function (label, fn, cls) {
+      const b = SB.h('button', { class: 'btn ' + (cls || ''), type: 'button' }, label);
+      b.addEventListener('click', fn);
+      tools.appendChild(b);
+      return b;
+    };
+    return f;
+  };
+
+  /* ---------------- controls ---------------- */
+  let ctlSeq = 0;
+  SB.controls = function (container, specs, onChange) {
+    const v = {};
+    const api = { v: v, el: {}, set: null };
+    function emit(id) { onChange && onChange(v, id); }
+    specs.forEach((s) => {
+      const uid = 'c' + (++ctlSeq) + '-' + (s.id || 'x');
+      if (s.type === 'range' || !s.type) {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const top = SB.h('div', { class: 'ctl-top' });
+        const lab = SB.h('label', { for: uid }, s.label);
+        const out = SB.h('output', { for: uid });
+        top.appendChild(lab); top.appendChild(out);
+        const inp = SB.h('input', { type: 'range', id: uid });
+        const log = !!s.log;
+        const toPos = (x) => log ? Math.round(1000 * Math.log(x / s.min) / Math.log(s.max / s.min)) : x;
+        const fromPos = (p) => {
+          if (!log) return Number(p);
+          let x = s.min * Math.pow(s.max / s.min, p / 1000);
+          const m = Math.pow(10, Math.floor(Math.log10(x)) - 2);
+          return Math.round(x / m) * m;
+        };
+        if (log) { inp.min = 0; inp.max = 1000; inp.step = 1; }
+        else { inp.min = s.min; inp.max = s.max; inp.step = s.step || 'any'; }
+        const fmt = s.fmt || ((x) => SB.f(x, 3) + (s.unit ? ' ' + s.unit : ''));
+        const paint = () => { const p = (Number(inp.value) - Number(inp.min)) / (Number(inp.max) - Number(inp.min)) * 100; inp.style.setProperty('--p', p + '%'); };
+        const setVal = (x, silent) => { v[s.id] = x; inp.value = toPos(x); out.textContent = fmt(x); paint(); if (!silent) emit(s.id); };
+        inp.addEventListener('input', () => { v[s.id] = fromPos(inp.value); out.textContent = fmt(v[s.id]); paint(); emit(s.id); });
+        wrap.appendChild(top); wrap.appendChild(inp);
+        container.appendChild(wrap);
+        api.el[s.id] = { input: inp, out: out, set: setVal, wrap: wrap, refmt: () => { out.textContent = fmt(v[s.id]); } };
+        setVal(s.value, true);
+      } else if (s.type === 'seg') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        if (s.label) wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<span class="l">' + s.label + '</span>'));
+        const seg = SB.h('div', { class: 'seg', role: 'group', 'aria-label': s.label || s.id });
+        const btns = s.options.map((o) => {
+          const b = SB.h('button', { type: 'button', 'data-v': o.v }, o.t);
+          if (o.tone) b.dataset.tone = o.tone;
+          b.addEventListener('click', () => { setVal(o.v); });
+          seg.appendChild(b);
+          return b;
+        });
+        const setVal = (x, silent) => { v[s.id] = x; btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(x)))); if (!silent) emit(s.id); };
+        wrap.appendChild(seg);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, buttons: btns };
+        setVal(s.value, true);
+      } else if (s.type === 'select') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<label for="' + uid + '">' + s.label + '</label>'));
+        const sel = SB.h('select', { id: uid });
+        s.options.forEach((o) => { const op = SB.h('option', { value: o.v }, o.t); sel.appendChild(op); });
+        sel.addEventListener('change', () => { v[s.id] = sel.value; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = String(x); sel.value = String(x); if (!silent) emit(s.id); };
+        wrap.appendChild(sel);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, select: sel };
+        setVal(s.value, true);
+      } else if (s.type === 'check') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const lab = SB.h('label', { class: 'check' });
+        const inp = SB.h('input', { type: 'checkbox', id: uid });
+        lab.appendChild(inp); lab.appendChild(document.createTextNode(s.label));
+        inp.addEventListener('change', () => { v[s.id] = inp.checked; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = !!x; inp.checked = !!x; if (!silent) emit(s.id); };
+        wrap.appendChild(lab);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, input: inp };
+        setVal(s.value, true);
+      }
+    });
+    api.set = (id, x, silent) => api.el[id] && api.el[id].set(x, silent);
+    api.show = (id, on) => { if (api.el[id]) api.el[id].wrap.hidden = !on; };
+    return api;
+  };
+
+  /* ---------------- readouts ---------------- */
+  SB.reads = function (container, specs) {
+    const map = {};
+    specs.forEach((s) => {
+      const d = SB.h('div', { class: 'read' + (s.hl ? ' hl' : '') });
+      d.innerHTML = '<span>' + s.label + '</span><b>—</b>';
+      container.appendChild(d);
+      map[s.id] = d;
+    });
+    return {
+      set(id, text, state) {
+        const d = map[id]; if (!d) return;
+        d.querySelector('b').textContent = text;
+        d.classList.toggle('warn', state === 'warn');
+      },
+      el: map
+    };
+  };
+
+  /* ---------------- plotting ---------------- */
+  function niceStep(span, n) {
+    const raw = span / Math.max(1, n);
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const m = raw / p;
+    return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+  }
+  SB.ticks = function (a, b, n) {
+    const st = niceStep(b - a, n || 5);
+    const out = [];
+    for (let x = Math.ceil(a / st - 1e-9) * st; x <= b + st * 1e-6; x += st) out.push(Math.abs(x) < st * 1e-9 ? 0 : x);
+    return out;
+  };
+  SB.logTicks = function (a, b) {
+    const out = [];
+    for (let e = Math.floor(Math.log10(a)); e <= Math.ceil(Math.log10(b)); e++) {
+      const x = Math.pow(10, e);
+      if (x >= a * 0.999 && x <= b * 1.001) out.push(x);
+    }
+    return out;
+  };
+  SB.plot = function (o, box, opt) {
+    const ctx = o.ctx;
+    opt = Object.assign({ pad: [10, 12, 34, 46] }, opt || {});
+    const [pt, pr, pb, pl] = opt.pad;
+    const X0 = box.x + pl, X1 = box.x + box.w - pr, Y0 = box.y + pt, Y1 = box.y + box.h - pb;
+    const lx = (v) => opt.xlog ? Math.log10(v) : v;
+    const ly = (v) => opt.ylog ? Math.log10(v) : v;
+    const ax = lx(opt.xmin), bx = lx(opt.xmax), ay = ly(opt.ymin), by = ly(opt.ymax);
+    const p = {
+      x0: X0, x1: X1, y0: Y0, y1: Y1, ctx: ctx,
+      X: (v) => X0 + (lx(v) - ax) / (bx - ax) * (X1 - X0),
+      Y: (v) => Y1 - (ly(v) - ay) / (by - ay) * (Y1 - Y0),
+      invX: (px) => { const t = ax + (px - X0) / (X1 - X0) * (bx - ax); return opt.xlog ? Math.pow(10, t) : t; },
+      invY: (py) => { const t = ay + (Y1 - py) / (Y1 - Y0) * (by - ay); return opt.ylog ? Math.pow(10, t) : t; }
+    };
+    const font = '11px ' + SB.c('font').replace(/"/g, '"');
+    p.axes = function () {
+      ctx.save();
+      ctx.font = font;
+      ctx.lineWidth = 1;
+      const xt = opt.xticks || (opt.xlog ? SB.logTicks(opt.xmin, opt.xmax) : SB.ticks(opt.xmin, opt.xmax, opt.nx || Math.max(3, Math.round((X1 - X0) / 80))));
+      const yt = opt.yticks || (opt.ylog ? SB.logTicks(opt.ymin, opt.ymax) : SB.ticks(opt.ymin, opt.ymax, opt.ny || Math.max(3, Math.round((Y1 - Y0) / 45))));
+      ctx.strokeStyle = SB.c('line-2');
+      ctx.beginPath();
+      if (opt.grid !== false) {
+        yt.forEach((t) => { const y = Math.round(p.Y(t)) + 0.5; ctx.moveTo(X0, y); ctx.lineTo(X1, y); });
+        if (opt.xgrid) xt.forEach((t) => { const x = Math.round(p.X(t)) + 0.5; ctx.moveTo(x, Y0); ctx.lineTo(x, Y1); });
+      }
+      ctx.stroke();
+      ctx.strokeStyle = SB.c('line');
+      ctx.beginPath(); ctx.moveTo(X0, Math.round(Y1) + 0.5); ctx.lineTo(X1, Math.round(Y1) + 0.5); ctx.stroke();
+      if (opt.yaxisLine) { ctx.beginPath(); ctx.moveTo(Math.round(X0) + 0.5, Y0); ctx.lineTo(Math.round(X0) + 0.5, Y1); ctx.stroke(); }
+      ctx.fillStyle = SB.c('muted');
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const xf = opt.xfmt || ((t) => SB.f(t, 3));
+      const yf = opt.yfmt || ((t) => SB.f(t, 3));
+      xt.forEach((t) => ctx.fillText(xf(t), p.X(t), Y1 + 6));
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      yt.forEach((t) => ctx.fillText(yf(t), X0 - 6, p.Y(t)));
+      if (opt.xlabel) { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlabel, (X0 + X1) / 2, box.y + box.h - 1); }
+      if (opt.ylabel) { ctx.save(); ctx.translate(box.x + 10, (Y0 + Y1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(opt.ylabel, 0, 0); ctx.restore(); }
+      ctx.restore();
+      return p;
+    };
+    p.clip = function () { ctx.save(); ctx.beginPath(); ctx.rect(X0, Y0 - 1, X1 - X0, Y1 - Y0 + 2); ctx.clip(); };
+    p.unclip = function () { ctx.restore(); };
+    p.line = function (pts, color, width, dash) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = width || 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      let started = false;
+      pts.forEach((q) => {
+        if (q == null || !isFinite(q[1]) || !isFinite(q[0])) { started = false; return; }
+        const x = p.X(q[0]), y = p.Y(q[1]);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    };
+    p.area = function (pts, color, alpha, base) {
+      if (!pts.length) return;
+      ctx.save();
+      ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      ctx.beginPath();
+      const yb = p.Y(base == null ? Math.max(opt.ymin, opt.ylog ? opt.ymin : 0) : base);
+      ctx.moveTo(p.X(pts[0][0]), yb);
+      pts.forEach((q) => ctx.lineTo(p.X(q[0]), p.Y(q[1])));
+      ctx.lineTo(p.X(pts[pts.length - 1][0]), yb);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    };
+    p.band = function (x0, x1, color, alpha) {
+      ctx.save(); ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      const a = Math.max(X0, p.X(x0)), b = Math.min(X1, p.X(x1));
+      if (b > a) ctx.fillRect(a, Y0, b - a, Y1 - Y0);
+      ctx.restore();
+    };
+    p.vline = function (x, color, label, opts2) {
+      const xx = Math.round(p.X(x)) + 0.5;
+      if (xx < X0 - 1 || xx > X1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(xx, Y0); ctx.lineTo(xx, Y1); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'top'; ctx.textAlign = (xx > X1 - 60) ? 'right' : 'left'; ctx.fillText(label, xx + (xx > X1 - 60 ? -4 : 4), Y0 + 2 + ((opts2 && opts2.dy) || 0)); }
+      ctx.restore();
+    };
+    p.hline = function (y, color, label, opts2) {
+      const yy = Math.round(p.Y(y)) + 0.5;
+      if (yy < Y0 - 1 || yy > Y1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(X0, yy); ctx.lineTo(X1, yy); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'bottom'; ctx.textAlign = (opts2 && opts2.left) ? 'left' : 'right'; ctx.fillText(label, (opts2 && opts2.left) ? X0 + 4 : X1 - 4, yy - 3); }
+      ctx.restore();
+    };
+    p.dot = function (x, y, color, r) {
+      const xx = p.X(x), yy = p.Y(y);
+      ctx.save();
+      ctx.fillStyle = SB.c('surface'); ctx.beginPath(); ctx.arc(xx, yy, (r || 4.5) + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(xx, yy, r || 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    p.label = function (x, y, text, o2) {
+      o2 = o2 || {};
+      ctx.save(); ctx.font = (o2.bold ? '600 ' : '') + (o2.size || 11) + 'px ' + SB.c('font');
+      ctx.fillStyle = o2.color || SB.c('ink-2');
+      ctx.textAlign = o2.align || 'left'; ctx.textBaseline = o2.base || 'middle';
+      ctx.fillText(text, (o2.px ? x : p.X(x)) + (o2.dx || 0), (o2.py ? y : p.Y(y)) + (o2.dy || 0));
+      ctx.restore();
+    };
+    return p;
+  };
+  SB.font = function (size, weight) { return (weight ? weight + ' ' : '') + size + 'px ' + SB.c('font'); };
+  SB.text = function (ctx, s, x, y, o) {
+    o = o || {};
+    ctx.save();
+    ctx.font = SB.font(o.size || 12, o.weight);
+    ctx.fillStyle = o.color || SB.c('ink-2');
+    ctx.textAlign = o.align || 'left';
+    ctx.textBaseline = o.base || 'middle';
+    if (o.halo) { ctx.lineWidth = 4; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  };
+  SB.rrect = function (ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  };
+  SB.arrow = function (ctx, x0, y0, x1, y1, color, w, head) {
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    const a = Math.atan2(y1 - y0, x1 - x0), hs = head || 7;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hs * Math.cos(a - 0.4), y1 - hs * Math.sin(a - 0.4)); ctx.lineTo(x1 - hs * Math.cos(a + 0.4), y1 - hs * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  };
+
+  /* ---------------- quiz ---------------- */
+  function initQuiz() {
+    document.querySelectorAll('.quiz').forEach((qz) => {
+      const ans = Number(qz.dataset.a) - 1;
+      const items = Array.from(qz.querySelectorAll('.opts > li'));
+      const why = qz.querySelector('.why');
+      const keys = ['①', '②', '③', '④', '⑤'];
+      const btns = items.map((li, i) => {
+        const b = SB.h('button', { type: 'button', class: 'opt' });
+        b.innerHTML = '<span class="k">' + keys[i] + '</span><span>' + li.innerHTML + '</span>';
+        li.innerHTML = ''; li.appendChild(b);
+        b.addEventListener('click', () => {
+          if (qz.classList.contains('done')) return;
+          qz.classList.add('done');
+          btns.forEach((bb, j) => { bb.disabled = true; if (j === ans) bb.classList.add('correct'); });
+          const ok = i === ans;
+          if (!ok) b.classList.add('wrong');
+          qz.dataset.ok = ok ? '1' : '0';
+          if (why && !why.querySelector('.verdict')) {
+            const v = SB.h('span', { class: 'verdict ' + (ok ? 'ok' : 'no') }, ok ? '정답.' : '오답 — 정답은 ' + keys[ans] + '.');
+            why.insertBefore(v, why.firstChild);
+          }
+          const set = qz.closest('.quiz-set');
+          if (set) {
+            const all = set.querySelectorAll('.quiz');
+            const done = set.querySelectorAll('.quiz.done');
+            const good = set.querySelectorAll('.quiz[data-ok="1"]');
+            let sc = set.querySelector('.score');
+            if (!sc) { sc = SB.h('p', { class: 'score' }); set.appendChild(sc); }
+            sc.textContent = done.length + ' / ' + all.length + '문항 풀이 · ' + good.length + '개 정답' + (done.length === all.length ? (good.length === all.length ? ' — 모두 맞혔습니다.' : ' — 틀린 문항의 해설을 다시 읽어 보세요.') : '');
+          }
+        });
+        return b;
+      });
+    });
+  }
+
+  /* ---------------- page chrome ---------------- */
+  function chrome() {
+    const slug = document.body.dataset.slug || '';
+    const idx = SB.CHAPTERS.findIndex((c) => c.slug === slug);
+    const ch = idx >= 0 ? SB.CHAPTERS[idx] : null;
+    const home = BASE + 'index.html';
+    const chapHref = (c) => BASE + c.slug + '.html';
+
+    // top bar
+    const top = SB.h('header', { class: 'topbar' });
+    top.innerHTML =
+      '<div class="topbar-in">' +
+      '<a class="brand" href="' + home + '" aria-label="ShutterBook 처음으로"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>ShutterBook <small>글로벌 셔터 교과서</small></a>' +
+      '<span class="crumb">' + (ch ? '<b>' + ch.n + '</b> ' + ch.t : '') + '</span>' +
+      '<div class="top-actions">' +
+      '<button class="icon-btn" type="button" data-act="theme" aria-label="밝기 테마 전환"></button>' +
+      '<button class="icon-btn" type="button" data-act="menu" aria-label="챕터 목록 열기">' + ICON.menu + '<span>목차</span></button>' +
+      '</div></div><div class="progress" aria-hidden="true"></div>';
+    document.body.insertBefore(top, document.body.firstChild);
+    const skip = SB.h('a', { class: 'skip', href: '#main' }, '본문으로 건너뛰기');
+    document.body.insertBefore(skip, top);
+
+    const themeBtn = top.querySelector('[data-act="theme"]');
+    const paintTheme = () => { themeBtn.innerHTML = SB.isDark() ? ICON.sun : ICON.moon; themeBtn.setAttribute('aria-label', SB.isDark() ? '밝은 화면으로 전환' : '어두운 화면으로 전환'); };
+    paintTheme();
+    document.addEventListener('sb:theme', paintTheme);
+    themeBtn.addEventListener('click', () => SB.setTheme(SB.isDark() ? 'light' : 'dark'));
+
+    // drawer
+    const dr = SB.h('div', { class: 'drawer', id: 'chapter-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': '챕터 목록' });
+    dr.innerHTML = '<div class="drawer-panel"><div class="drawer-head"><b>전체 챕터</b><button class="icon-btn" type="button" data-act="close" aria-label="닫기">' + ICON.close + '</button></div><ol>' +
+      '<li><a href="' + home + '"' + (!ch ? ' aria-current="page"' : '') + '><span>·</span><span>처음 페이지</span></a></li>' +
+      SB.CHAPTERS.map((c) => '<li><a href="' + chapHref(c) + '"' + (ch && c.slug === ch.slug ? ' aria-current="page"' : '') + '><span>' + c.n + '</span><span>' + c.t + '</span></a></li>').join('') + '</ol></div>';
+    document.body.appendChild(dr);
+    const menuBtn = top.querySelector('[data-act="menu"]');
+    const open = () => { dr.classList.add('open'); const a = dr.querySelector('[aria-current]') || dr.querySelector('a'); a && a.focus(); };
+    const close = () => { dr.classList.remove('open'); menuBtn.focus(); };
+    menuBtn.addEventListener('click', open);
+    dr.addEventListener('click', (e) => { if (e.target === dr || e.target.closest('[data-act="close"]')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dr.classList.contains('open')) close(); });
+
+    // progress
+    const bar = top.querySelector('.progress');
+    const art = document.querySelector('.article') || document.querySelector('main');
+    const onScroll = () => {
+      if (!art) return;
+      const r = art.getBoundingClientRect();
+      const total = r.height - window.innerHeight * 0.6;
+      const p = SB.clamp((-r.top + 60) / Math.max(1, total), 0, 1);
+      bar.style.width = (p * 100).toFixed(2) + '%';
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // headings: ids + anchors + toc
+    const hs = Array.from(document.querySelectorAll('.article h2'));
+    hs.forEach((h, i) => {
+      if (!h.id) h.id = 's' + (i + 1);
+      const a = SB.h('a', { class: 'anchor', href: '#' + h.id, 'aria-label': '이 절의 링크' }, '#');
+      h.appendChild(a);
+    });
+    const toc = document.querySelector('.toc');
+    if (toc && hs.length) {
+      toc.innerHTML = '<summary>이 장의 구성 (' + hs.length + '절)</summary><ol>' + hs.map((h) => '<li><a href="#' + h.id + '">' + h.firstChild.textContent + '</a></li>').join('') + '</ol>';
+    }
+
+    // pager
+    const pg = document.querySelector('.pager');
+    if (pg && ch) {
+      const prev = SB.CHAPTERS[idx - 1], next = SB.CHAPTERS[idx + 1];
+      pg.innerHTML =
+        (prev ? '<a class="prev" href="' + chapHref(prev) + '"><span>이전 · ' + prev.n + '</span>' + prev.t + '</a>' : '<a class="prev" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>') +
+        (next ? '<a class="next" href="' + chapHref(next) + '"><span>다음 · ' + next.n + '</span>' + next.t + '</a>' : '<a class="next" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>');
+    }
+
+    // footer
+    const ft = SB.h('footer', { class: 'site-foot' });
+    ft.innerHTML = '<div class="shell"><div><b>ShutterBook</b> · 글로벌 셔터 CMOS 이미지 센서를 시뮬레이터로 배우는 인터랙티브 교과서. <a href="https://sensorbook.euiyun.com/" rel="noopener">SensorBook</a>의 구성 방식을 본떠 만들었습니다.</div>' +
+      '<div>시뮬레이터는 개념 이해를 위한 단순화 모델입니다. 제품 수치는 각 장 끝의 출처(제조사 발표·학회 논문)를 따르며, 실제 설계에는 데이터시트를 확인하세요.</div></div>';
+    document.body.appendChild(ft);
+  }
+
+  /* ---------------- MathJax ---------------- */
+  function math() {
+    if (!document.querySelector('.eq, .m')) return;
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global', scale: 1.0 },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'canvas'] }
+    };
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js';
+    s.async = true;
+    s.id = 'MathJax-script';
+    document.head.appendChild(s);
+  }
+
+  SB.ready = function (fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  };
+  SB.ready(function () {
+    chrome();
+    initQuiz();
+    math();
+  });
+})();
+</script>
+<script>
+/* Tiny orthographic 3D renderer for layered device models (painter's algorithm). */
+(function () {
+  'use strict';
+  const ISO = (window.ISO = {});
+
+  function face(pts, n, st) { return { pts: pts, n: n, st: st }; }
+
+  ISO.box = function (x0, y0, z0, x1, y1, z1, st) {
+    const P = (x, y, z) => [x, y, z];
+    return [
+      face([P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)], [0, 0, 1], st),
+      face([P(x0, y1, z0), P(x1, y1, z0), P(x1, y0, z0), P(x0, y0, z0)], [0, 0, -1], st),
+      face([P(x0, y0, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1)], [0, -1, 0], st),
+      face([P(x1, y1, z0), P(x0, y1, z0), P(x0, y1, z1), P(x1, y1, z1)], [0, 1, 0], st),
+      face([P(x0, y1, z0), P(x0, y0, z0), P(x0, y0, z1), P(x0, y1, z1)], [-1, 0, 0], st),
+      face([P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)], [1, 0, 0], st)
+    ];
+  };
+
+  /* elliptical cap (lens) sitting on z0 */
+  ISO.dome = function (cx, cy, z0, r, h, st, seg, rings) {
+    seg = seg || 18; rings = rings || 6;
+    const out = [];
+    const pt = (i, j) => {
+      const t = j / rings, a = (i / seg) * Math.PI * 2;
+      const rr = r * Math.cos(t * Math.PI / 2);
+      return [cx + rr * Math.cos(a), cy + rr * Math.sin(a), z0 + h * Math.sin(t * Math.PI / 2)];
+    };
+    for (let j = 0; j < rings; j++) {
+      for (let i = 0; i < seg; i++) {
+        const a = pt(i, j), b = pt(i + 1, j), c = pt(i + 1, j + 1), d = pt(i, j + 1);
+        const mx = (a[0] + b[0] + c[0] + d[0]) / 4 - cx, my = (a[1] + b[1] + c[1] + d[1]) / 4 - cy, mz = ((a[2] + b[2] + c[2] + d[2]) / 4 - z0) * (r / h) * (r / h);
+        const L = Math.hypot(mx, my, mz) || 1;
+        out.push(face(j === rings - 1 ? [a, b, c] : [a, b, c, d], [mx / L, my / L, mz / L], st));
+      }
+    }
+    return out;
+  };
+
+  function shade(hex, k) {
+    let c = hex.trim();
+    if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+    const n = parseInt(c.slice(1, 7), 16);
+    const r = Math.min(255, Math.round((n >> 16 & 255) * k)), g = Math.min(255, Math.round((n >> 8 & 255) * k)), b = Math.min(255, Math.round((n & 255) * k));
+    return [r, g, b];
+  }
+
+  /* cam: {yaw, pitch, scale, cx, cy}; layerOffset(layer) -> dz */
+  ISO.project = function (p, cam, dz) {
+    const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    const x = p[0] - cam.ox, y = p[1] - cam.oy, z = p[2] + (dz || 0) - cam.oz;
+    const xr = x * cy - y * sy, yr = x * sy + y * cy;
+    return { x: cam.cx + cam.scale * xr, y: cam.cy - cam.scale * (yr * sp + z * cp), d: -(yr * cp - z * sp) };
+  };
+
+  ISO.render = function (ctx, faces, cam, opt) {
+    opt = opt || {};
+    const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    const L = [-0.35, -0.55, 0.76]; // light dir (world)
+    const list = [];
+    for (const f of faces) {
+      const dz = opt.offset ? opt.offset(f.st.layer) : 0;
+      if (opt.hidden && opt.hidden(f.st.layer)) continue;
+      // backface test (view vector toward camera, world coordinates)
+      const nx = f.n[0] * cy - f.n[1] * sy, ny = f.n[0] * sy + f.n[1] * cy, nz = f.n[2];
+      const facing = -(ny * cp - nz * sp);
+      if (facing <= 0.001 && !f.st.twoSided) continue;
+      const pts = f.pts.map((p) => ISO.project(p, cam, dz));
+      let d = 0; for (const q of pts) d += q.d; d /= pts.length;
+      const lam = Math.max(0, f.n[0] * L[0] + f.n[1] * L[1] + f.n[2] * L[2]);
+      list.push({ pts, d: d + (f.st.bias || 0), k: 0.62 + 0.45 * lam, st: f.st });
+    }
+    list.sort((a, b) => a.d - b.d);
+    for (const it of list) {
+      const st = it.st;
+      const dim = opt.dim ? opt.dim(st.layer) : 1;
+      const [r, g, b] = shade(st.color, it.k);
+      ctx.beginPath();
+      ctx.moveTo(it.pts[0].x, it.pts[0].y);
+      for (let i = 1; i < it.pts.length; i++) ctx.lineTo(it.pts[i].x, it.pts[i].y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + ((st.alpha == null ? 1 : st.alpha) * dim) + ')';
+      ctx.fill();
+      if (st.edge !== false) {
+        ctx.strokeStyle = 'rgba(0,0,0,' + (0.18 * dim * (st.alpha == null ? 1 : Math.max(0.4, st.alpha))) + ')';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+      }
+    }
+  };
+})();
+</script>
+<script>
+/* Chapter 03 — pixel architectures */
+SB.ready(function () {
+
+  /* ---------- 3-1 pixel operation stepper ---------- */
+  (function () {
+    const el = document.getElementById('sim-ops');
+    if (!el) return;
+    const f = SB.frame('sim-ops', { views: [{ key: 'pot', label: '전위 우물과 전하', sub: '아래로 깊을수록 전자가 모이는 곳', aspect: (w) => (w < 560 ? 0.82 : 2.05) }], layout: 'one' });
+    const A = {
+      '4t': {
+        name: '4T 롤링',
+        nodes: [{ id: 'PD', t: 'well', d: 1.0 }, { id: 'TX', t: 'gate' }, { id: 'FD', t: 'well', d: 1.35 }, { id: 'RST', t: 'gate' }, { id: 'VDD', t: 'drain', d: 1.75 }],
+        sig: ['RST', 'TX', '읽기'],
+        steps: [
+          { t: '포토다이오드 리셋 = 노출 시작', d: 'RST와 TX를 함께 열어 포토다이오드에 남은 전하를 VDD로 비웁니다. 이 순간부터 이 행의 노출이 시작됩니다.', on: { RST: 1, TX: 1 }, q: { PD: 0, FD: 0 }, scope: '행별' },
+          { t: '적분', d: '게이트를 모두 닫고 빛을 받습니다. 광전자가 포토다이오드 우물에 쌓입니다.', on: {}, q: { PD: 0.8, FD: 0 }, light: 1, scope: '행별' },
+          { t: 'FD 리셋', d: '읽을 차례가 되면 RST로 FD만 비웁니다. 이 순간 FD에는 무작위 리셋 잡음 n₁이 남습니다.', on: { RST: 1 }, q: { PD: 0.8, FD: 0 }, tag: { FD: 'n₁' }, scope: '행별' },
+          { t: '리셋 레벨 읽기 (S1)', d: 'RST를 닫고 FD 전압을 읽습니다. S1 = V_rst + n₁', on: { '읽기': 1 }, q: { PD: 0.8, FD: 0 }, tag: { FD: 'n₁' }, read: 'S1 = V_rst + n₁', scope: '행별' },
+          { t: '전하 전송', d: 'TX를 열어 포토다이오드 전하를 FD로 모두 옮깁니다. 핀드 포토다이오드는 전하를 남김없이 넘겨줍니다.', on: { TX: 1 }, q: { PD: 0, FD: 0.8 }, tag: { FD: 'n₁' }, scope: '행별' },
+          { t: '신호 레벨 읽기 (S2) → CDS', d: 'S2 = V_rst + n₁ − 신호. 두 값을 빼면 같은 n₁이 지워지고 신호만 남습니다.', on: { '읽기': 1 }, q: { PD: 0, FD: 0.8 }, tag: { FD: 'n₁' }, read: 'S1 − S2 = 신호  (n₁ 상쇄)', scope: '행별',
+            verdict: [['FD 리셋 잡음', '상쇄 ✓', 'good'], ['샘플링 잡음', '없음', 'good'], ['대기 중 오염', '대기 없음', 'good'], ['셔터', '행마다 노출 시각이 다름', 'warn']] }
+        ]
+      },
+      '5t': {
+        name: '5T FD 저장',
+        nodes: [{ id: 'DRN', t: 'drain', d: 1.75 }, { id: 'AB', t: 'gate' }, { id: 'PD', t: 'well', d: 1.0 }, { id: 'TX', t: 'gate' }, { id: 'FD', t: 'well', d: 1.35 }, { id: 'RST', t: 'gate' }, { id: 'VDD', t: 'drain', d: 1.75 }],
+        sig: ['AB', 'RST', 'TX', '읽기'],
+        steps: [
+          { t: '전체 리셋', d: '모든 픽셀이 동시에 AB(오버플로 게이트)로 포토다이오드를, RST로 FD를 비웁니다.', on: { AB: 1, RST: 1 }, q: { PD: 0, FD: 0 }, scope: '전체' },
+          { t: '적분 (모든 픽셀 동시)', d: 'AB를 닫는 순간 모든 픽셀의 노출이 함께 시작됩니다.', on: {}, q: { PD: 0.8, FD: 0 }, light: 1, scope: '전체' },
+          { t: '전체 FD 리셋', d: 'FD를 리셋합니다. 하지만 지금 이 리셋 레벨을 저장해 둘 곳이 없습니다. n₁은 기록되지 않고 사라집니다.', on: { RST: 1 }, q: { PD: 0.8, FD: 0 }, tag: { FD: 'n₁' }, scope: '전체' },
+          { t: '전체 전송 = 노출 끝', d: '모든 픽셀의 TX를 동시에 열어 전하를 FD로 옮깁니다. 이후 AB를 열어 두어 새로 생기는 전하를 버립니다.', on: { TX: 1 }, q: { PD: 0, FD: 0.8 }, tag: { FD: 'n₁' }, scope: '전체' },
+          { t: '대기: 행 순서를 기다림', d: 'FD는 n+ 접합이라 누설 전류가 크고 빛에도 민감합니다. 기다리는 동안 원치 않는 전하(붉은 점)가 섞입니다.', on: { AB: 1 }, q: { PD: 0, FD: 0.8 }, leak: { FD: 0.16 }, tag: { FD: 'n₁' }, light: 1, scope: '대기' },
+          { t: '신호 레벨 읽기 (S2)', d: 'S2 = V_rst + n₁ − 신호 − 오염. 리셋 레벨보다 신호를 먼저 읽을 수밖에 없습니다.', on: { AB: 1, '읽기': 1 }, q: { PD: 0, FD: 0.8 }, leak: { FD: 0.16 }, tag: { FD: 'n₁' }, read: 'S2 = V_rst + n₁ − 신호 − 오염', scope: '행별' },
+          { t: 'FD 리셋 후 S1 읽기', d: '다시 리셋하면 새로운 잡음 n₂가 생깁니다. S1 − S2 = 신호 + 오염 + (n₂ − n₁). kTC 잡음이 지워지지 않고 오히려 √2배가 됩니다.', on: { AB: 1, RST: 1, '읽기': 1 }, q: { PD: 0, FD: 0 }, tag: { FD: 'n₂' }, read: 'S1 − S2 = 신호 + 오염 + (n₂ − n₁)', scope: '행별',
+            verdict: [['FD 리셋 잡음', '남음 ✗ (√2배)', 'bad'], ['샘플링 잡음', '없음', 'good'], ['대기 중 오염', 'FD 누설·기생광 큼', 'bad'], ['셔터', '모든 픽셀 동시 노출', 'good']] }
+        ]
+      },
+      'cd': {
+        name: '전하 영역 GS',
+        nodes: [{ id: 'DRN', t: 'drain', d: 1.75 }, { id: 'AB', t: 'gate' }, { id: 'PD', t: 'well', d: 1.0 }, { id: 'SG', t: 'gate' }, { id: 'SD', t: 'well', d: 1.18, shield: 1 }, { id: 'TX', t: 'gate' }, { id: 'FD', t: 'well', d: 1.4 }, { id: 'RST', t: 'gate' }, { id: 'VDD', t: 'drain', d: 1.75 }],
+        sig: ['AB', 'SG', 'TX', 'RST', '읽기'],
+        steps: [
+          { t: '전체 리셋', d: '모든 픽셀이 동시에 AB로 포토다이오드를 비웁니다. 저장 다이오드(SD)도 미리 비워 둡니다.', on: { AB: 1 }, q: { PD: 0, SD: 0, FD: 0 }, scope: '전체' },
+          { t: '적분 (모든 픽셀 동시)', d: 'AB를 닫는 순간 모든 픽셀의 노출이 시작됩니다.', on: {}, q: { PD: 0.8, SD: 0, FD: 0 }, light: 1, scope: '전체' },
+          { t: '전체 전송: PD → SD', d: '노출 끝에 모든 픽셀의 저장 게이트(SG)를 동시에 열어 전하를 차광된 SD로 옮깁니다.', on: { SG: 1 }, q: { PD: 0, SD: 0.8, FD: 0 }, scope: '전체' },
+          { t: '대기: SD에 보관', d: 'SD는 핀드 구조라 누설이 작고 차광되어 있습니다. 그래도 일부 빛·확산 전하가 새어 듭니다(기생 광감도). 포토다이오드는 이미 다음 노출을 시작할 수 있습니다.', on: { AB: 1 }, q: { PD: 0, SD: 0.8, FD: 0 }, leak: { SD: 0.035 }, light: 1, scope: '대기' },
+          { t: 'FD 리셋 → 리셋 레벨 읽기 (S1)', d: '읽을 차례가 된 행만 FD를 리셋하고 바로 읽습니다. S1 = V_rst + n₁', on: { AB: 1, RST: 1, '읽기': 1 }, q: { PD: 0, SD: 0.8, FD: 0 }, leak: { SD: 0.035 }, tag: { FD: 'n₁' }, read: 'S1 = V_rst + n₁', scope: '행별' },
+          { t: '전송: SD → FD', d: 'TX를 열어 SD의 전하를 FD로 옮깁니다. 두 번째 완전 전송입니다.', on: { AB: 1, TX: 1 }, q: { PD: 0, SD: 0, FD: 0.835 }, tag: { FD: 'n₁' }, scope: '행별' },
+          { t: '신호 레벨 읽기 (S2) → 진짜 CDS', d: 'S1 − S2 = 신호 (+ 작은 기생 성분). 4T 픽셀과 똑같이 n₁이 상쇄됩니다.', on: { AB: 1, '읽기': 1 }, q: { PD: 0, SD: 0, FD: 0.835 }, tag: { FD: 'n₁' }, read: 'S1 − S2 = 신호  (n₁ 상쇄)', scope: '행별',
+            verdict: [['FD 리셋 잡음', '상쇄 ✓', 'good'], ['샘플링 잡음', '없음', 'good'], ['대기 중 오염', '작음 (차광·핀드 SD)', 'good'], ['대가', 'SD 면적, 전송 두 번', 'warn']] }
+        ]
+      },
+      'vd': {
+        name: '전압 영역 GS',
+        nodes: [{ id: 'DRN', t: 'drain', d: 1.75 }, { id: 'AB', t: 'gate' }, { id: 'PD', t: 'well', d: 1.0 }, { id: 'TX', t: 'gate' }, { id: 'FD', t: 'well', d: 1.35 }, { id: 'RST', t: 'gate' }, { id: 'VDD', t: 'drain', d: 1.75 }],
+        caps: true,
+        sig: ['AB', 'RST', 'TX', 'S1', 'S2', '읽기'],
+        steps: [
+          { t: '전체 리셋', d: '모든 픽셀이 동시에 AB로 포토다이오드를, RST로 FD를 비웁니다.', on: { AB: 1, RST: 1 }, q: { PD: 0, FD: 0 }, scope: '전체' },
+          { t: '적분 (모든 픽셀 동시)', d: 'AB를 닫으면 모든 픽셀의 노출이 시작됩니다.', on: {}, q: { PD: 0.8, FD: 0 }, light: 1, scope: '전체' },
+          { t: '전체 FD 리셋 → C1에 샘플링', d: 'FD를 리셋하고 그 전압(V_rst + n₁)을 SF1을 거쳐 C1에 담습니다. 스위치가 열리는 순간 C1에 샘플링 잡음 n₃이 더해집니다.', on: { RST: 1, S1: 1 }, q: { PD: 0.8, FD: 0 }, tag: { FD: 'n₁' }, cap: { C1: 1 }, scope: '전체' },
+          { t: '전체 전송 → C2에 샘플링', d: 'TX로 전하를 FD에 옮기고 신호 전압(V_rst + n₁ − 신호)을 C2에 담습니다. 샘플링 잡음 n₄가 더해집니다.', on: { TX: 1, S2: 1 }, q: { PD: 0, FD: 0.8 }, tag: { FD: 'n₁' }, cap: { C1: 1, C2: 1 }, scope: '전체' },
+          { t: '대기: 커패시터에 보관', d: '신호는 이제 전압으로 C1·C2에 있습니다. 배선층(또는 아래 웨이퍼)의 커패시터는 빛이 거의 닿지 않습니다. 커패시터·스위치 누설이 관리 대상입니다.', on: { AB: 1 }, q: { PD: 0, FD: 0.8 }, cap: { C1: 1, C2: 1 }, capLeak: 1, light: 1, scope: '대기' },
+          { t: '행별 읽기: C1, C2 → 차이', d: 'SF2로 C1과 C2를 차례로 읽어 뺍니다. (V_rst + n₁ + n₃) − (V_rst + n₁ − 신호 + n₄) = 신호 + (n₃ − n₄). FD 잡음은 지워지고 샘플링 잡음은 남습니다.', on: { AB: 1, '읽기': 1 }, q: { PD: 0, FD: 0.8 }, cap: { C1: 1, C2: 1 }, read: 'C1 − C2 = 신호 + (n₃ − n₄)', scope: '행별',
+            verdict: [['FD 리셋 잡음', '상쇄 ✓', 'good'], ['샘플링 잡음', 'kT/C1 + kT/C2 남음', 'warn'], ['대기 중 오염', '작음 (배선층 저장)', 'good'], ['대가', '큰 커패시터 → 적층', 'warn']] }
+        ]
+      }
+    };
+    let arch = '4t', step = 0, from = null, tAnim = 1;
+    const ui = SB.controls(f.ctls, [{ id: 'arch', type: 'seg', label: '픽셀 구조', value: '4t', options: [{ v: '4t', t: '4T 롤링', tone: 'rs' }, { v: '5t', t: '5T FD 저장' }, { v: 'cd', t: '전하 영역 GS', tone: 'gs' }, { v: 'vd', t: '전압 영역 GS', tone: 'gs' }] }], (v) => { arch = v.arch; step = 0; from = null; tAnim = 1; sync(); });
+    // step text panel
+    const panel = SB.h('div', { class: 'ops-text' });
+    panel.style.cssText = 'display:grid;gap:6px;';
+    f.body.insertBefore(panel, f.ctls);
+    const nav = SB.h('div', {});
+    nav.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+    const bPrev = SB.h('button', { class: 'btn', type: 'button' }, '◀ 이전 단계');
+    const bNext = SB.h('button', { class: 'btn primary', type: 'button' }, '다음 단계 ▶');
+    const bReset = SB.h('button', { class: 'btn ghost', type: 'button' }, SB.icon.reset + ' 처음부터');
+    const prog = SB.h('span', { class: 'sim-note' });
+    nav.appendChild(bPrev); nav.appendChild(bNext); nav.appendChild(bReset); nav.appendChild(prog);
+    f.body.insertBefore(nav, f.ctls);
+    const go = (k) => { const n = A[arch].steps.length; const s2 = SB.clamp(k, 0, n - 1); if (s2 === step) return; from = snapshot(); step = s2; tAnim = 0; sync(); kick(); };
+    bPrev.addEventListener('click', () => go(step - 1));
+    bNext.addEventListener('click', () => go(step + 1));
+    bReset.addEventListener('click', () => go(0));
+
+    function stateOf(s) {
+      const a = A[arch], st = a.steps[s], g = {}, q = {}, lk = {};
+      a.nodes.forEach((n) => { if (n.t === 'gate') g[n.id] = st.on[n.id] ? 1 : 0; if (n.t === 'well') { q[n.id] = (st.q && st.q[n.id]) || 0; lk[n.id] = (st.leak && st.leak[n.id]) || 0; } });
+      return { g, q, lk, c1: st.cap && st.cap.C1 ? 1 : 0, c2: st.cap && st.cap.C2 ? 1 : 0 };
+    }
+    function snapshot() { return cur || stateOf(step); }
+    let cur = null;
+    function blend(a, b, t) {
+      const o = { g: {}, q: {}, lk: {}, c1: SB.lerp(a.c1, b.c1, t), c2: SB.lerp(a.c2, b.c2, t) };
+      for (const k in b.g) o.g[k] = SB.lerp(a.g[k] || 0, b.g[k], t);
+      for (const k in b.q) { o.q[k] = SB.lerp(a.q[k] || 0, b.q[k], t); o.lk[k] = SB.lerp(a.lk[k] || 0, b.lk[k], t); }
+      return o;
+    }
+    function sync() {
+      const a = A[arch], st = a.steps[step];
+      prog.textContent = (step + 1) + ' / ' + a.steps.length + ' 단계 · ' + st.scope + (st.scope === '전체' ? ' 픽셀 동시' : st.scope === '행별' ? ' 순서대로' : '');
+      let html = '<b style="font-size:var(--fs-2)">' + (step + 1) + '. ' + st.t + '</b><span style="color:var(--ink-2);font-size:var(--fs-1)">' + st.d + '</span>';
+      if (st.verdict) html += '<div class="reads" style="margin-top:4px">' + st.verdict.map((v) => '<div class="read' + (v[2] === 'bad' || v[2] === 'warn' ? ' warn' : ' hl') + '"><span>' + v[0] + '</span><b>' + v[1] + '</b></div>').join('') + '</div>';
+      panel.innerHTML = html;
+      bPrev.disabled = step === 0; bNext.disabled = step === a.steps.length - 1;
+      view.draw();
+    }
+    function paint(o) {
+      const ctx = o.ctx, W = o.w, H = o.h, a = A[arch], st = a.steps[step];
+      const target = stateOf(step);
+      const e = 1 - Math.pow(1 - SB.clamp(tAnim, 0, 1), 3);
+      cur = from ? blend(from, target, e) : target;
+      const s = cur;
+      const narrow = W < 560;
+      const capW = a.caps ? (narrow ? 0 : W * 0.26) : 0;
+      const L = 16, R = W - 16 - capW;
+      const timH = narrow ? 120 : 112;
+      const capStrip = a.caps && narrow ? 54 : 0;
+      const topY = narrow ? 62 : 46, botY = H - timH - 18 - capStrip;
+      const D = (botY - topY) * 0.42;
+      const units = a.nodes.reduce((acc, n) => acc + (n.t === 'gate' ? 0.55 : n.t === 'drain' ? 0.8 : 1), 0);
+      const U = (R - L) / units;
+      // potential floor per node
+      let x = L;
+      const geo = [];
+      a.nodes.forEach((n, i) => {
+        const w = (n.t === 'gate' ? 0.55 : n.t === 'drain' ? 0.8 : 1) * U;
+        let depth;
+        if (n.t === 'gate') {
+          const l = a.nodes[i - 1], r = a.nodes[i + 1];
+          const dl = l.d || 1, dr = r.d || 1;
+          const on = (Math.min(dl, dr) + Math.max(dl, dr)) / 2 + 0.02;
+          depth = SB.lerp(0.22, on, s.g[n.id] || 0);
+        } else depth = n.d;
+        geo.push({ n, x0: x, x1: x + w, depth });
+        x += w;
+      });
+      const yOf = (d) => topY + d * D;
+      // substrate fill under the potential profile
+      ctx.beginPath();
+      ctx.moveTo(L, botY);
+      geo.forEach((g) => { ctx.lineTo(g.x0, yOf(g.depth)); ctx.lineTo(g.x1, yOf(g.depth)); });
+      ctx.lineTo(R, botY); ctx.closePath();
+      ctx.fillStyle = SB.c('surface-3'); ctx.fill();
+      ctx.beginPath();
+      geo.forEach((g, i) => { if (i === 0) ctx.moveTo(g.x0, yOf(g.depth)); else ctx.lineTo(g.x0, yOf(g.depth)); ctx.lineTo(g.x1, yOf(g.depth)); });
+      ctx.strokeStyle = SB.c('ink-2'); ctx.lineWidth = 1.5; ctx.stroke();
+      // surface line
+      ctx.strokeStyle = SB.c('line'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, topY); ctx.lineTo(R, topY); ctx.stroke();
+      const blue = SB.c('ch-b');
+      geo.forEach((g) => {
+        const n = g.n, cx = (g.x0 + g.x1) / 2;
+        if (n.t === 'well') {
+          const q = s.q[n.id] || 0, lk = s.lk[n.id] || 0;
+          const fillH = q * D * 0.62;
+          if (q > 0.005) {
+            ctx.fillStyle = SB.rgba(blue, 0.85);
+            ctx.fillRect(g.x0 + 3, yOf(g.depth) - fillH, g.x1 - g.x0 - 6, fillH);
+          }
+          if (lk > 0.003) {
+            const nd = Math.round(lk * 90), rr = SB.rng(7 + n.id.length);
+            ctx.fillStyle = SB.c('bad');
+            for (let i = 0; i < nd; i++) { const px = g.x0 + 6 + rr() * (g.x1 - g.x0 - 12), py = yOf(g.depth) - fillH - 4 - rr() * Math.max(6, lk * D * 1.5); ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill(); }
+          }
+          if (n.shield) { ctx.fillStyle = SB.c('ink-2'); ctx.fillRect(g.x0 - 4, topY - 14, g.x1 - g.x0 + 8, 5); SB.text(ctx, '차광', cx, topY - 22, { align: 'center', size: 10, color: SB.c('muted') }); }
+          SB.text(ctx, n.id, cx, Math.min(botY - 8, yOf(g.depth) + 14), { align: 'center', size: 12, weight: 600, color: SB.c('ink') });
+          if (st.tag && st.tag[n.id]) SB.text(ctx, st.tag[n.id], g.x1 - 4, yOf(g.depth) - (q * D * 0.62) - 10, { align: 'right', size: 12, weight: 600, color: SB.c('nir') });
+        } else if (n.t === 'gate') {
+          const on = s.g[n.id] || 0;
+          const col = on > 0.5 ? (st.scope === '전체' ? SB.c('gs') : SB.c('rs')) : SB.c('muted');
+          ctx.fillStyle = SB.rgba(col, 0.9);
+          ctx.fillRect(g.x0 + 2, topY - 10, g.x1 - g.x0 - 4, 7);
+          SB.text(ctx, n.id, cx, topY - 22, { align: 'center', size: 11, weight: 600, color: on > 0.5 ? SB.c('ink') : SB.c('muted') });
+        } else {
+          SB.text(ctx, n.id, cx, Math.min(botY - 8, yOf(g.depth) + 14), { align: 'center', size: 11, color: SB.c('muted') });
+          ctx.fillStyle = SB.rgba(SB.c('ink-2'), 0.25);
+          ctx.fillRect(g.x0 + 3, yOf(g.depth) - 6, g.x1 - g.x0 - 6, 6);
+        }
+      });
+      // light on PD
+      if (st.light) {
+        const pd = geo.find((g) => g.n.id === 'PD');
+        const lc = SB.waveColor(570);
+        for (let i = 0; i < 4; i++) {
+          const px = pd.x0 + ((i + 0.5) / 4) * (pd.x1 - pd.x0);
+          SB.arrow(ctx, px - 6, 6, px, topY - 4, lc, 1.6, 6);
+        }
+      }
+      // caps panel
+      if (a.caps) {
+        const cx0 = narrow ? 16 : R + 22, cw = narrow ? W - 32 : capW - 30;
+        const cy0 = narrow ? topY : topY + 6;
+        if (narrow) { /* draw caps as a compact strip at the top-right */ }
+        const drawCap = (label, k, yy, txt) => {
+          const filled = k === 1 ? s.c1 : s.c2;
+          const ww = narrow ? (W - 44) / 2 : cw;
+          const xx = narrow ? 16 + (k - 1) * (ww + 12) : cx0;
+          if (narrow) yy = botY + 8;
+          ctx.fillStyle = SB.c('surface-2'); SB.rrect(ctx, xx, yy, ww, 38, 6); ctx.fill();
+          ctx.strokeStyle = SB.c('gs'); ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = SB.rgba(SB.c('gs'), 0.35); ctx.fillRect(xx + 2, yy + 2, (ww - 4) * filled, 34);
+          SB.text(ctx, label, xx + 8, yy + 12, { size: 11, weight: 600, color: SB.c('ink') });
+          if (!narrow) SB.text(ctx, filled > 0.5 ? txt : '비어 있음', xx + 8, yy + 27, { size: 10.5, color: SB.c('ink-2') });
+        };
+        drawCap('C1 (리셋 레벨)', 1, cy0, 'V_rst + n₁ + n₃');
+        drawCap('C2 (신호 레벨)', 2, cy0 + 48, 'V_rst + n₁ − 신호 + n₄');
+        if (st.capLeak && !narrow) SB.text(ctx, '대기 중: 커패시터·스위치 누설 관리', cx0, cy0 + 106, { size: 10.5, color: SB.c('muted') });
+      }
+      if (st.read) SB.text(ctx, '읽기 → ' + st.read, L, 16, { size: 12, weight: 600, color: SB.c('ink') });
+      else SB.text(ctx, a.name, L, 16, { size: 12, weight: 600, color: SB.c('muted') });
+      // timing chart
+      const ty0 = H - timH, rowH = Math.min(18, (timH - 18) / a.sig.length);
+      const lx = 64, rx = W - 14, sw = (rx - lx) / a.steps.length;
+      ctx.fillStyle = SB.rgba(SB.c('accent'), 0.1);
+      ctx.fillRect(lx + step * sw, ty0 - 4, sw, rowH * a.sig.length + 8);
+      a.sig.forEach((sg, i) => {
+        const y = ty0 + i * rowH + rowH * 0.75;
+        SB.text(ctx, sg, lx - 8, y - rowH * 0.3, { align: 'right', size: 10.5, color: SB.c('ink-2') });
+        ctx.beginPath();
+        a.steps.forEach((stp, k) => {
+          const hi = stp.on[sg] ? 1 : 0, yy = y - hi * rowH * 0.6;
+          if (k === 0) ctx.moveTo(lx, yy); else ctx.lineTo(lx + k * sw, yy);
+          ctx.lineTo(lx + (k + 1) * sw, yy);
+        });
+        ctx.strokeStyle = SB.c('ink-2'); ctx.lineWidth = 1.3; ctx.stroke();
+      });
+      a.steps.forEach((stp, k) => {
+        SB.text(ctx, String(k + 1), lx + (k + 0.5) * sw, ty0 + rowH * a.sig.length + 10, { align: 'center', size: 10, color: k === step ? SB.c('accent') : SB.c('muted'), weight: k === step ? 700 : 400 });
+        if (stp.scope === '전체') { ctx.fillStyle = SB.rgba(SB.c('gs'), 0.5); ctx.fillRect(lx + k * sw + 2, ty0 - 8, sw - 4, 3); }
+      });
+    }
+    const view = SB.canvas(f.views.pot.cv, paint, { aspect: f.views.pot.spec.aspect });
+    let raf = 0;
+    function kick() {
+      if (raf) return;
+      const t0 = performance.now(), start = tAnim;
+      const tick = (t) => { tAnim = Math.min(1, start + (t - t0) / 650); view.draw(); if (tAnim < 1) raf = requestAnimationFrame(tick); else { raf = 0; from = null; } };
+      if (SB.reduced) { tAnim = 1; from = null; view.draw(); return; }
+      raf = requestAnimationFrame(tick);
+    }
+    const legend = SB.h('div', { class: 'legend' });
+    legend.innerHTML = '<span><i class="dot" style="background:' + SB.c('ch-b') + '"></i>광전자</span><span><i class="dot" style="background:' + SB.c('bad') + '"></i>대기 중 섞인 전하</span><span><i style="background:' + SB.c('gs') + '"></i>전체 픽셀 동시 펄스</span><span><i style="background:' + SB.c('rs') + '"></i>행별 펄스</span>';
+    f.body.insertBefore(legend, f.ctls);
+    sync();
+  })();
+
+  /* ---------- 3-2 stacked VDGS pixel in 3D ---------- */
+  (function () {
+    const f = SB.frame('sim-3d', { views: [{ key: 'm', label: '2×2 픽셀 · 피치 3 µm', sub: '드래그해서 돌려 보세요', cls: 'grab', aspect: (w) => (w < 560 ? 0.9 : 1.75) }], layout: 'one' });
+    if (!f || !window.ISO) return;
+    const LAYERS = [
+      { id: 'ml', t: '마이크로렌즈', d: '빛을 포토다이오드 중앙으로 모은다' },
+      { id: 'cf', t: '컬러 필터 · 금속 그리드', d: '파장 선택, 픽셀 사이 빛 번짐 차단' },
+      { id: 'ar', t: '반사방지막', d: '실리콘 표면 반사를 줄인다' },
+      { id: 'si', t: '실리콘 · 포토다이오드 · DTI', d: '광전 변환. DTI가 이웃 픽셀로의 누설을 막는다' },
+      { id: 'fe', t: '픽셀 트랜지스터 · 배선', d: 'TX·RST·AB 게이트와 FD, 1차 배선' },
+      { id: 'hb', t: 'Cu–Cu 하이브리드 본딩', d: '픽셀마다 위아래 웨이퍼를 잇는 구리 패드' },
+      { id: 'mim', t: 'MIM 커패시터 C1·C2', d: '리셋·신호 전압을 저장하는 고밀도 커패시터' },
+      { id: 'lg', t: '로직 웨이퍼', d: 'SF·샘플링 스위치·SEL, 그 아래 열 회로' }
+    ];
+    const ui = SB.controls(f.ctls, [
+      { id: 'ex', label: '분해', min: 0, max: 1, step: 0.01, value: 0.55, fmt: (v) => SB.f(v * 100, 0) + ' %' },
+      { id: 'ray', type: 'seg', label: '광선', value: 'vis', options: [{ v: 'vis', t: '가시광 (550 nm)' }, { v: 'nir', t: '근적외선 (940 nm)', tone: 'nir' }, { v: 'off', t: '끄기' }] },
+      { id: 'hl', type: 'select', label: '층 강조', value: 'all', options: [{ v: 'all', t: '전체 보기' }].concat(LAYERS.map((l) => ({ v: l.id, t: l.t }))) }
+    ], () => view.draw());
+    const info = SB.h('p', { class: 'sim-note' });
+    f.body.insertBefore(info, f.ctls);
+    const P = 3, faces = [];
+    const add = (arr) => arr.forEach((x) => faces.push(x));
+    const C = {
+      lens: '#D9E7EE', cfR: '#C8484A', cfG: '#3C9A5A', cfB: '#3F68D0', grid: '#4D5254', ar: '#7FA7C9',
+      si: '#9AA8B3', pd: '#2F7FB8', dti: '#46525A', poly: '#B0603A', cu: '#C27A3E', ox: '#B9C3C9',
+      tin: '#7C8590', hik: '#8E62C9', lsi: '#6D747A'
+    };
+    const cfCol = [[C.cfR, C.cfG], [C.cfG, C.cfB]];
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+      const x0 = i * P, y0 = j * P, cx = x0 + P / 2, cy = y0 + P / 2;
+      add(ISO.dome(cx, cy, 7.3, 1.42, 0.75, { color: C.lens, alpha: 0.82, layer: 'ml', edge: false }));
+      add(ISO.box(x0 + 0.06, y0 + 0.06, 6.62, x0 + P - 0.06, y0 + P - 0.06, 7.3, { color: cfCol[i][j], alpha: 0.92, layer: 'cf' }));
+      // photodiode (n region) inside silicon
+      add(ISO.box(x0 + 0.38, y0 + 0.38, 2.55, x0 + P - 0.38, y0 + P - 0.38, 5.9, { color: C.pd, alpha: 0.85, layer: 'si', bias: 0.4 }));
+      // front-end gates
+      add(ISO.box(x0 + 0.3, y0 + 0.3, 1.7, x0 + 0.9, y0 + 1.0, 2.0, { color: C.poly, layer: 'fe' }));
+      add(ISO.box(x0 + 1.3, y0 + 0.3, 1.7, x0 + 1.8, y0 + 0.8, 2.0, { color: C.poly, layer: 'fe' }));
+      add(ISO.box(x0 + 2.1, y0 + 2.0, 1.7, x0 + 2.7, y0 + 2.6, 2.0, { color: C.poly, layer: 'fe' }));
+      add(ISO.box(x0 + 0.4, y0 + 1.3, 0.9, x0 + 2.6, y0 + 1.55, 1.15, { color: C.cu, layer: 'fe' }));
+      add(ISO.box(x0 + 1.4, y0 + 0.4, 0.55, x0 + 1.65, y0 + 2.6, 0.75, { color: C.cu, layer: 'fe' }));
+      // hybrid bonding pads (top half on pixel wafer, bottom half on logic wafer)
+      add(ISO.box(x0 + 1.1, y0 + 1.1, 0.2, x0 + 1.9, y0 + 1.9, 0.45, { color: C.cu, layer: 'hb' }));
+      add(ISO.box(x0 + 1.1, y0 + 1.1, -0.05, x0 + 1.9, y0 + 1.9, 0.2, { color: '#B06A32', layer: 'hb' }));
+      // MIM capacitors C1 and C2: TiN / high-k / TiN plates
+      [[0.25, 1.45], [1.55, 2.75]].forEach(([a, b]) => {
+        add(ISO.box(x0 + a, y0 + 0.3, -1.25, x0 + b, y0 + 2.7, -1.12, { color: C.tin, layer: 'mim' }));
+        add(ISO.box(x0 + a + 0.04, y0 + 0.34, -1.12, x0 + b - 0.04, y0 + 2.66, -1.05, { color: C.hik, layer: 'mim', alpha: 0.95 }));
+        add(ISO.box(x0 + a + 0.08, y0 + 0.38, -1.05, x0 + b - 0.08, y0 + 2.62, -0.93, { color: C.tin, layer: 'mim' }));
+      });
+      add(ISO.box(x0 + 1.35, y0 + 1.35, -0.93, x0 + 1.65, y0 + 1.65, -0.05, { color: C.cu, layer: 'mim' }));
+      // logic transistors
+      add(ISO.box(x0 + 0.35, y0 + 0.4, -2.1, x0 + 0.95, y0 + 1.0, -1.8, { color: C.poly, layer: 'lg' }));
+      add(ISO.box(x0 + 1.8, y0 + 1.9, -2.1, x0 + 2.5, y0 + 2.5, -1.8, { color: C.poly, layer: 'lg' }));
+    }
+    // continuous layers
+    add(ISO.box(0, 0, 6.42, 2 * P, 2 * P, 6.62, { color: C.ar, alpha: 0.7, layer: 'ar' }));
+    add(ISO.box(0, 0, 2.0, 2 * P, 2 * P, 6.42, { color: C.si, alpha: 0.28, layer: 'si', edge: true }));
+    // DTI walls & metal grid (shared boundaries)
+    [P].forEach((g) => {
+      add(ISO.box(g - 0.08, 0, 2.0, g + 0.08, 2 * P, 6.42, { color: C.dti, alpha: 0.8, layer: 'si' }));
+      add(ISO.box(0, g - 0.08, 2.0, 2 * P, g + 0.08, 6.42, { color: C.dti, alpha: 0.8, layer: 'si' }));
+    });
+    [0, P, 2 * P].forEach((g) => {
+      add(ISO.box(g - 0.08, 0, 6.62, g + 0.08, 2 * P, 7.3, { color: C.grid, layer: 'cf' }));
+      add(ISO.box(0, g - 0.08, 6.62, 2 * P, g + 0.08, 7.3, { color: C.grid, layer: 'cf' }));
+    });
+    add(ISO.box(0, 0, 0.45, 2 * P, 2 * P, 1.7, { color: C.ox, alpha: 0.16, layer: 'fe', edge: true }));
+    add(ISO.box(0, 0, -1.8, 2 * P, 2 * P, -0.05, { color: C.ox, alpha: 0.12, layer: 'mim', edge: true }));
+    add(ISO.box(0, 0, -3.0, 2 * P, 2 * P, -2.1, { color: C.lsi, layer: 'lg' }));
+    const ORDER = ['ml', 'cf', 'ar', 'si', 'fe', 'hb', 'mim', 'lg'];
+    const GAP = { ml: 6, cf: 5, ar: 4, si: 3, fe: 2, hb: 1, mim: 0, lg: -1 };
+    const anchors = { ml: [6, 6, 8.0], cf: [6, 6, 6.95], ar: [6, 6, 6.5], si: [6, 6, 4.2], fe: [6, 6, 1.1], hb: [6, 6, 0.2], mim: [6, 6, -1.1], lg: [6, 6, -2.5] };
+    const cam = { yaw: -0.72, pitch: 0.42, scale: 30, cx: 0, cy: 0, ox: 3, oy: 3, oz: 2.2 };
+    let drag = null, idle = 0;
+    const offset = (layer) => (GAP[layer] || 0) * ui.v.ex * 1.45;
+    function paint(o) {
+      const ctx = o.ctx, W = o.w, H = o.h, narrow = W < 560;
+      const hl = ui.v.hl;
+      // fit the exploded stack (plus incoming rays) into the drawing area
+      const zLo = -3.0 + offset('lg'), zHi = (ui.v.ray !== 'off' ? 11.2 : 8.1) + offset('ml');
+      const probe = { yaw: cam.yaw, pitch: cam.pitch, scale: 1, cx: 0, cy: 0, ox: 3, oy: 3, oz: 0 };
+      let bx0 = 1e9, bx1 = -1e9, by0 = 1e9, by1 = -1e9;
+      [0, 6].forEach((x) => [0, 6].forEach((y) => [zLo, zHi].forEach((z) => { const q = ISO.project([x, y, z], probe); bx0 = Math.min(bx0, q.x); bx1 = Math.max(bx1, q.x); by0 = Math.min(by0, q.y); by1 = Math.max(by1, q.y); })));
+      const availW = narrow ? W - 24 : W * 0.66, availH = H - 28;
+      cam.scale = Math.min(availW / (bx1 - bx0), availH / (by1 - by0));
+      cam.oz = 0;
+      cam.cx = (narrow ? W / 2 : W * 0.37) - cam.scale * (bx0 + bx1) / 2;
+      cam.cy = H / 2 - cam.scale * (by0 + by1) / 2 + 4;
+      ISO.render(ctx, faces, cam, { offset, dim: (l) => (hl === 'all' || hl === l ? 1 : 0.18) });
+      // rays
+      if (ui.v.ray !== 'off') {
+        const nir = ui.v.ray === 'nir';
+        const col = nir ? SB.c('nir') : SB.waveColor(550);
+        const cx = 1.5, cy = 1.5;
+        const zTop = 11.2 + offset('ml');
+        const zLens = 7.9 + offset('ml');
+        const zSiTop = 6.42 + offset('si'), zSiBot = 2.0 + offset('si');
+        const zAbs = nir ? zSiBot - 0.6 : zSiTop - 0.7;
+        [-0.9, -0.3, 0.3, 0.9].forEach((dx, k) => {
+          const p0 = ISO.project([cx + dx, cy + dx * 0.4, zTop], cam), p1 = ISO.project([cx + dx, cy + dx * 0.4, zLens], cam);
+          const p2 = ISO.project([cx + dx * 0.25, cy + dx * 0.1, zSiTop], cam), p3 = ISO.project([cx + dx * 0.06, cy, nir ? zSiBot : zAbs], cam);
+          ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.95;
+          ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.stroke();
+          if (nir) {
+            const p4 = ISO.project([cx + dx * 0.02, cy, zAbs - (k % 2 ? 0.4 : 1.1)], cam);
+            ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.stroke();
+          }
+          ctx.restore();
+        });
+        const pa = ISO.project([cx, cy, nir ? zSiBot + 0.4 : zAbs], cam);
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(pa.x, pa.y, 4, 0, Math.PI * 2); ctx.fill();
+        SB.text(ctx, nir ? '940 nm: 4.4 µm 실리콘을 대부분 통과' : '550 nm: 표면 1~2 µm에서 흡수', pa.x - 10, pa.y + (nir ? 18 : -16), { align: 'right', size: 11, color: SB.c('ink'), halo: SB.c('surface-2') });
+      }
+      // labels
+      if (!narrow) {
+        const lx = W * 0.79;
+        const items = ORDER.map((id) => { const a = anchors[id]; const p = ISO.project(a, cam, offset(id)); return { id, p }; });
+        items.sort((a, b) => a.p.y - b.p.y);
+        let lastY = -1e9;
+        items.forEach((it) => {
+          const L = LAYERS.find((l) => l.id === it.id);
+          let ly = Math.max(it.p.y, lastY + 22); lastY = ly;
+          const on = hl === 'all' || hl === it.id;
+          ctx.save(); ctx.strokeStyle = SB.rgba(SB.c('muted'), on ? 0.9 : 0.35); ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(it.p.x + 4, it.p.y); ctx.lineTo(lx - 6, ly); ctx.stroke(); ctx.restore();
+          SB.text(ctx, L.t, lx, ly, { size: 12, weight: on ? 600 : 400, color: on ? SB.c('ink') : SB.c('muted') });
+        });
+      }
+      const L = LAYERS.find((l) => l.id === hl);
+      info.innerHTML = L ? '<b>' + L.t + '</b> — ' + L.d : '층을 선택하면 설명이 나옵니다. 빛은 위(뒷면)에서 들어옵니다. 위 웨이퍼가 뒷면 조사(BSI) 픽셀, 아래가 로직 웨이퍼입니다.';
+    }
+    const view = SB.canvas(f.views.m.cv, paint, { aspect: f.views.m.spec.aspect });
+    SB.pointer(f.views.m.cv, {
+      down: (p) => { drag = { x: p.x, y: p.y, yaw: cam.yaw, pitch: cam.pitch }; },
+      drag: (p) => { if (!drag) return; cam.yaw = drag.yaw + (p.x - drag.x) * 0.01; cam.pitch = SB.clamp(drag.pitch + (p.y - drag.y) * 0.008, 0.05, 1.35); idle = 0; view.draw(); },
+      up: () => { drag = null; }
+    });
+    const anim = SB.anim(f.el, (dt) => { idle += dt; if (!drag && idle > 2.5) { cam.yaw += dt * 0.18; view.draw(); } });
+    f.playButton(anim);
+    f.button(SB.icon.reset + ' 시점 초기화', () => { cam.yaw = -0.72; cam.pitch = 0.42; view.draw(); });
+  })();
+
+  /* ---------- 3-3 pixel area budget ---------- */
+  (function () {
+    const f = SB.frame('sim-area', { views: [{ key: 'fp', label: '평면 배치 (위에서 본 픽셀)', sub: '', aspect: 1.25 }, { key: 'ch', label: '피치별 포토다이오드 면적', sub: '', aspect: 1.25 }], layout: 'two' });
+    if (!f) return;
+    const ui = SB.controls(f.ctls, [
+      { id: 'arch', type: 'seg', label: '구조', value: 'cd', options: [{ v: 'cd', t: '전하 영역' }, { v: 'cds', t: '전하 영역·적층' }, { v: 'vd', t: '전압 영역' }, { v: 'vds', t: '전압 영역·적층', tone: 'gs' }] },
+      { id: 'p', label: '픽셀 피치', min: 1.5, max: 6, step: 0.05, value: 3.0, fmt: (v) => SB.f(v, 2) + ' µm' }
+    ], () => { fp.draw(); ch.draw(); });
+    const R = SB.reads(f.reads, [{ id: 'pd', label: '포토다이오드 면적', hl: true }, { id: 'ff', label: '실리콘 중 PD 비율' }, { id: 'fwc', label: 'FWC 추정 (1,500 e⁻/µm²)' }, { id: 'cap', label: '저장소' }]);
+    const AT = 0.25, DTI = 0.15, DENS = 1500, CAPD = 10; // µm² per transistor, µm DTI width, e-/µm², fF/µm²
+    const NT = { cd: 6, cds: 3, vd: 8, vds: 3 };
+    function model(arch, p) {
+      const A = p * p, iso = 2 * p * DTI, tr = NT[arch] * AT;
+      let pd, sd = 0;
+      if (arch === 'cd' || arch === 'cds') { const rem = Math.max(0, A - iso - tr - 0.2); pd = rem / 2; sd = rem / 2; }
+      else pd = Math.max(0, A - iso - tr);
+      const capArea = arch === 'vds' ? A * 0.42 : arch === 'vd' ? A * 0.3 : 0;
+      return { A, iso, tr, pd, sd, cap: capArea * CAPD };
+    }
+    const fp = SB.canvas(f.views.fp.cv, (o) => {
+      const ctx = o.ctx, v = ui.v, m = model(v.arch, v.p);
+      const stacked = v.arch === 'cds' || v.arch === 'vds';
+      const sz = Math.min(o.h - 54, stacked ? (o.w - 48) / 2 : o.w - 40);
+      const x0 = stacked ? (o.w - 2 * sz - 16) / 2 : (o.w - sz) / 2, y0 = 30;
+      const s = sz / v.p;
+      const drawPix = (X, title, lower) => {
+        ctx.fillStyle = SB.c('ink-2'); ctx.fillRect(X, y0, sz, sz);
+        const inner = Math.max(2, DTI * s);
+        const ix = X + inner, iy = y0 + inner, iw = sz - 2 * inner, A_in = Math.pow(v.p - 2 * DTI, 2);
+        ctx.fillStyle = SB.c('surface-3'); ctx.fillRect(ix, iy, iw, iw);
+        SB.text(ctx, title, X, y0 - 12, { size: 11, color: SB.c('muted') });
+        const bands = lower
+          ? [['C1', m.cap / CAPD / 2, SB.rgba(SB.c('nir'), 0.6)], ['C2', m.cap / CAPD / 2, SB.rgba(SB.c('nir'), 0.45)], ['SF·SW·SEL', 5 * AT, SB.c('ink-2')]]
+          : [['PD', m.pd, SB.rgba(SB.c('gs'), 0.8)]].concat(m.sd > 0 ? [['SD (차광)', m.sd, SB.rgba(SB.c('rs'), 0.8)]] : []).concat([['트랜지스터 ' + NT[v.arch] + '개', m.tr, SB.c('ink-2')]]);
+        let yy = iy;
+        bands.forEach(([lab, area, col]) => {
+          const hgt = Math.max(0, Math.min(iy + iw - yy, (area / A_in) * iw));
+          ctx.fillStyle = col; ctx.fillRect(ix, yy, iw, hgt);
+          if (hgt > 14) SB.text(ctx, lab, ix + 8, yy + Math.min(hgt / 2, 12), { size: 11, weight: 600, color: '#fff' });
+          yy += hgt;
+        });
+      };
+      drawPix(x0, stacked ? '픽셀 웨이퍼' : '픽셀 (한 층)', false);
+      if (stacked) drawPix(x0 + sz + 16, '로직 웨이퍼 (아래)', v.arch === 'vds');
+      if (v.arch === 'cds') { SB.text(ctx, '아래층: SF·SEL·RST 등', x0 + sz + 22, y0 + sz / 2, { size: 11, color: SB.c('muted') }); }
+      if (v.arch === 'vd') SB.text(ctx, 'C1·C2는 앞면 배선층(BEOL)의 MIM', x0, y0 + sz + 16, { size: 11, color: SB.c('muted') });
+      R.set('pd', SB.f(m.pd, 2) + ' µm²');
+      R.set('ff', SB.f((m.pd / m.A) * 100, 0) + ' %');
+      R.set('fwc', SB.f(Math.round(m.pd * DENS / 100) * 100, 0) + ' e⁻');
+      if (v.arch === 'cd' || v.arch === 'cds') R.set('cap', 'SD ' + SB.f(m.sd, 2) + ' µm²');
+      else { const C = m.cap / 2; const n = Math.sqrt(2 * 1.380649e-23 * 300 / (C * 1e-15)) / (100e-6 * 0.85); R.set('cap', 'C1=C2≈' + SB.f(C, 0) + ' fF · ' + SB.f(n, 1) + ' e⁻'); }
+    }, { aspect: 1.25 });
+    const ch = SB.canvas(f.views.ch.cv, (o) => {
+      const v = ui.v;
+      const p = SB.plot(o, { x: 0, y: 0, w: o.w, h: o.h }, { xmin: 1.5, xmax: 6, ymin: 0, ymax: 36, pad: [12, 14, 34, 42], xlabel: '피치 (µm)', yfmt: (t) => SB.f(t, 0) });
+      p.axes();
+      SB.text(o.ctx, 'PD 면적 (µm²)', p.x0 + 4, p.y0 + 6, { size: 11, color: SB.c('muted') });
+      const keys = [['cd', '전하 영역', SB.c('rs'), null, 12], ['cds', '전하 영역·적층', SB.c('rs'), [5, 4], -10], ['vd', '전압 영역', SB.c('nir'), null, 12], ['vds', '전압 영역·적층', SB.c('gs'), null, -10]];
+      keys.forEach(([k, t, c, dash, dy]) => {
+        const pts = []; for (let x = 1.5; x <= 6.001; x += 0.05) pts.push([x, model(k, x).pd]);
+        p.line(pts, c, k === v.arch ? 2.6 : 1.4, dash);
+        const end = pts[pts.length - 1];
+        if (k === v.arch) p.label(end[0], end[1], t, { align: 'right', dx: -4, dy: dy, color: SB.c('ink'), bold: true });
+      });
+      const m = model(v.arch, v.p);
+      p.vline(v.p, SB.c('muted'));
+      p.dot(v.p, m.pd, v.arch === 'vds' ? SB.c('gs') : v.arch.startsWith('cd') ? SB.c('rs') : SB.c('nir'), 4.5);
+    }, { aspect: 1.25 });
+    f.legend([{ t: '전하 영역', c: SB.c('rs'), cf: () => SB.c('rs') }, { t: '전하 영역·적층 (점선)', c: SB.c('rs'), cf: () => SB.c('rs') }, { t: '전압 영역', c: SB.c('nir'), cf: () => SB.c('nir') }, { t: '전압 영역·적층', c: SB.c('gs'), cf: () => SB.c('gs') }]);
+    f.note('개념 모델: 트랜지스터 1개 0.25 µm², DTI 폭 0.15 µm, FWC 밀도 1,500 e⁻/µm², 커패시터 밀도 10 fF/µm², 변환 이득 100 µV/e⁻를 가정했습니다. 실제 수치는 공정과 설계에 따라 크게 다릅니다.');
+  })();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1430 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>종합 퀴즈와 용어집 · ShutterBook</title>
+<meta name="description" content="글로벌 셔터 CIS 전 범위를 점검하는 종합 퀴즈 20문항과 검색 가능한 용어집.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%230F1A1C%22/%3E%3Cg%20fill%3D%22%231FB5A6%22%3E%3Crect%20x%3D%226%22%20y%3D%227%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2212.2%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2217.4%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3Crect%20x%3D%226%22%20y%3D%2222.6%22%20width%3D%2220%22%20height%3D%223.4%22%20rx%3D%221.7%22/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ShutterBook — 글로벌 셔터 이미지 센서 교과서
+   Layout concept: one reading column (≈42rem) with lab panels that break out to the wide track.
+   Color carries meaning: teal = global shutter, amber = rolling shutter, crimson = near-infrared. */
+
+:root {
+  --bg: #F3F6F6;
+  --surface: #FFFFFF;
+  --surface-2: #EAF0F0;
+  --surface-3: #DCE5E5;
+  --ink: #0F1A1C;
+  --ink-2: #3D4E53;
+  --muted: #627378;
+  --line: #CFD9DA;
+  --line-2: #E2E9EA;
+  --accent: #007A70;
+  --accent-strong: #005E56;
+  --accent-wash: rgba(0, 122, 112, 0.09);
+  --on-accent: #FFFFFF;
+
+  /* semantic encodings (validated as a set, light surface) */
+  --gs: #008A7E;
+  --rs: #C26A00;
+  --nir: #B4144E;
+  --gs-wash: rgba(0, 138, 126, 0.12);
+  --rs-wash: rgba(194, 106, 0, 0.13);
+  --nir-wash: rgba(180, 20, 78, 0.11);
+
+  /* colour-filter channels */
+  --ch-r: #D23A3A;
+  --ch-g: #2B8C45;
+  --ch-b: #2F5BD3;
+  --ch-ir: #5E1A3D;
+
+  --good: #1C7C35;
+  --bad: #B3261E;
+  --scene: #0E1416;          /* backdrop of simulated scenes */
+  --scene-ink: #E9F1F1;
+
+  --shadow: 0 1px 2px rgba(15, 26, 28, 0.05), 0 6px 20px rgba(15, 26, 28, 0.05);
+
+  --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --fs-0: 0.8125rem;
+  --fs-1: 0.9375rem;
+  --fs-2: 1.0625rem;
+  --fs-3: 1.25rem;
+  --fs-4: 1.5625rem;
+  --fs-5: 2.0rem;
+  --fs-6: 2.75rem;
+
+  --measure: 42rem;
+  --wide: 70rem;
+  --gutter: clamp(16px, 4vw, 40px);
+  --r1: 6px;
+  --r2: 10px;
+  --top-h: 56px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1213;
+    --surface: #111A1C;
+    --surface-2: #172326;
+    --surface-3: #203034;
+    --ink: #E2ECEC;
+    --ink-2: #A7B9BC;
+    --muted: #7A8E92;
+    --line: #26363A;
+    --line-2: #1C2A2D;
+    --accent: #3CC2B4;
+    --accent-strong: #6ED8CC;
+    --accent-wash: rgba(60, 194, 180, 0.12);
+    --on-accent: #04201D;
+    --gs: #1F9E92;
+    --rs: #C97E12;
+    --nir: #E8487A;
+    --gs-wash: rgba(31, 158, 146, 0.18);
+    --rs-wash: rgba(201, 126, 18, 0.18);
+    --nir-wash: rgba(232, 72, 122, 0.16);
+    --ch-r: #F06363;
+    --ch-g: #45B86A;
+    --ch-b: #6B92FF;
+    --ch-ir: #B9467E;
+    --good: #46C46A;
+    --bad: #FF7A70;
+    --scene: #070B0C;
+    --scene-ink: #E9F1F1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0B1213;
+  --surface: #111A1C;
+  --surface-2: #172326;
+  --surface-3: #203034;
+  --ink: #E2ECEC;
+  --ink-2: #A7B9BC;
+  --muted: #7A8E92;
+  --line: #26363A;
+  --line-2: #1C2A2D;
+  --accent: #3CC2B4;
+  --accent-strong: #6ED8CC;
+  --accent-wash: rgba(60, 194, 180, 0.12);
+  --on-accent: #04201D;
+  --gs: #1F9E92;
+  --rs: #C97E12;
+  --nir: #E8487A;
+  --gs-wash: rgba(31, 158, 146, 0.18);
+  --rs-wash: rgba(201, 126, 18, 0.18);
+  --nir-wash: rgba(232, 72, 122, 0.16);
+  --ch-r: #F06363;
+  --ch-g: #45B86A;
+  --ch-b: #6B92FF;
+  --ch-ir: #B9467E;
+  --good: #46C46A;
+  --bad: #FF7A70;
+  --scene: #070B0C;
+  --scene-ink: #E9F1F1;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--top-h) + 16px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-2);
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg, canvas { max-width: 100%; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+::selection { background: var(--accent-wash); }
+h1, h2, h3, h4 { line-height: 1.3; text-wrap: balance; color: var(--ink); letter-spacing: -0.015em; }
+h2 { font-size: var(--fs-4); font-weight: 700; margin: 3.2em 0 0.7em; }
+h3 { font-size: var(--fs-3); font-weight: 600; margin: 2.2em 0 0.5em; }
+h4 { font-size: var(--fs-2); font-weight: 600; margin: 1.6em 0 0.4em; }
+p { margin: 0 0 1em; }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: normal; color: var(--ink); background: linear-gradient(transparent 62%, var(--accent-wash) 62%); }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 3rem 0; }
+ul, ol { padding-left: 1.3em; margin: 0 0 1em; }
+li { margin: 0.25em 0; }
+li::marker { color: var(--muted); }
+small { font-size: var(--fs-0); }
+.en { color: var(--muted); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--surface); padding: 8px 12px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto;
+  height: var(--top-h); padding-inline: var(--gutter);
+  display: flex; align-items: center; gap: 14px;
+}
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand:hover { color: var(--ink); }
+.brand-mark { width: 26px; height: 22px; display: grid; gap: 3px; }
+.brand-mark i { display: block; height: 3.5px; border-radius: 2px; background: var(--gs); transition: transform .45s cubic-bezier(.3,.7,.2,1); }
+.brand:hover .brand-mark i:nth-child(2) { transform: translateX(4px); }
+.brand:hover .brand-mark i:nth-child(3) { transform: translateX(8px); }
+.brand:hover .brand-mark i:nth-child(4) { transform: translateX(12px); }
+.brand:hover .brand-mark i { background: var(--rs); }
+.brand small { font-weight: 500; color: var(--muted); font-size: var(--fs-0); }
+.crumb { color: var(--muted); font-size: var(--fs-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.crumb b { color: var(--ink-2); font-weight: 600; }
+.top-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.icon-btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  height: 34px; min-width: 34px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: var(--fs-1);
+}
+.icon-btn:hover { border-color: var(--muted); }
+.icon-btn svg { width: 16px; height: 16px; }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--accent); width: 0; transition: width .1s linear; }
+
+.drawer {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: rgba(5, 12, 13, 0.45);
+}
+.drawer.open { display: block; }
+.drawer-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: min(380px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--line);
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  overflow-y: auto;
+}
+.drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.drawer-head b { font-size: var(--fs-1); color: var(--muted); font-weight: 600; }
+.drawer ol { list-style: none; padding: 0; margin: 0; }
+.drawer li { margin: 0; }
+.drawer a { display: grid; grid-template-columns: 2.2em 1fr; gap: 4px; padding: 9px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; line-height: 1.45; }
+.drawer a:hover { background: var(--surface-2); }
+.drawer a[aria-current="page"] { background: var(--accent-wash); }
+.drawer a span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- page shells ---------- */
+main { display: block; }
+.shell { max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 0 auto; padding-inline: var(--gutter); }
+.prose { max-width: var(--measure); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+/* ---------- chapter header ---------- */
+.ch-head { padding-block: clamp(36px, 7vw, 72px) 8px; }
+.ch-label { display: flex; align-items: baseline; gap: 12px; color: var(--muted); font-size: var(--fs-1); margin-bottom: 10px; }
+.ch-label .ch-n { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ch-head h1 { font-size: clamp(var(--fs-5), 5vw, var(--fs-6)); font-weight: 700; letter-spacing: -0.03em; margin: 0 0 0.45em; line-height: 1.18; }
+.ch-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); margin-bottom: 1.2em; }
+.goals { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px 22px 12px; margin: 26px 0 8px; }
+.goals b { display: block; font-size: var(--fs-1); color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.goals ul { margin: 0 0 6px; }
+.toc { margin: 18px 0 0; font-size: var(--fs-1); }
+.toc summary { cursor: pointer; color: var(--ink-2); font-weight: 600; list-style: none; display: inline-flex; gap: 8px; align-items: center; }
+.toc summary::-webkit-details-marker { display: none; }
+.toc summary::before { content: "▸"; color: var(--muted); transition: transform .2s; }
+.toc[open] summary::before { transform: rotate(90deg); }
+.toc ol { margin: 10px 0 0; padding-left: 1.6em; color: var(--ink-2); columns: 2 18rem; column-gap: 2rem; }
+.toc a { color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+/* ---------- article content ---------- */
+.article { padding-bottom: 40px; overflow-x: clip; overflow-clip-margin: 12px; }
+.article > * { max-width: var(--measure); margin-inline: auto; }
+.article > .wide, .article > .sim, .article > figure.wide, .article > .tbl-wrap.wide { max-width: var(--wide); }
+.article h2 { scroll-margin-top: calc(var(--top-h) + 16px); }
+.article h2 .anchor, .article h3 .anchor { opacity: 0; margin-left: 8px; color: var(--muted); text-decoration: none; font-weight: 400; }
+.article h2:hover .anchor, .article h3:hover .anchor { opacity: 1; }
+.lead-in { font-size: var(--fs-3); color: var(--ink-2); line-height: 1.65; }
+
+figure { margin: 2.2em auto; }
+.fig-box svg { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+figcaption b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.fig-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: clamp(12px, 2.4vw, 22px); overflow-x: auto; }
+
+.eq { margin: 1.6em auto; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r2); overflow-x: auto; text-align: center; }
+.eq mjx-container[display="true"] { margin: 0 !important; }
+.eq + p.where { font-size: var(--fs-1); color: var(--ink-2); margin-top: -0.6em; }
+mjx-container { color: inherit; }
+mjx-container[jax="SVG"] > svg { overflow: visible; }
+
+.tbl-wrap { overflow-x: auto; margin: 1.8em auto; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-1); line-height: 1.55; }
+th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-2); }
+thead th { background: var(--surface-2); color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl-caption { font-size: var(--fs-1); color: var(--ink-2); margin: -1.2em auto 1.8em; }
+
+.box { margin: 1.8em auto; padding: 16px 20px; background: var(--surface-2); border-radius: var(--r2); }
+.box > :last-child { margin-bottom: 0; }
+.box-t { font-weight: 700; display: block; margin-bottom: 4px; color: var(--ink); }
+.box.calc { background: var(--surface); border: 1px dashed var(--line); }
+.box.calc .box-t::before { content: "= "; color: var(--accent); }
+.box.field { background: var(--surface); border: 1px solid var(--line); }
+.box.warn { background: var(--rs-wash); }
+
+.try { margin: 0.8em auto 2.4em; font-size: var(--fs-1); color: var(--ink-2); }
+.try b { color: var(--ink); }
+.try ul { margin: 6px 0 0; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86em; font-weight: 600; padding: 0.05em 0.55em; border-radius: 999px; border: 1px solid currentColor; line-height: 1.6; white-space: nowrap; vertical-align: 0.06em; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.gs { color: var(--gs); }
+.chip.rs { color: var(--rs); }
+.chip.nir { color: var(--nir); }
+
+.sources { font-size: var(--fs-0); color: var(--muted); line-height: 1.6; }
+.sources ol { padding-left: 1.4em; }
+.sources a { color: var(--ink-2); }
+sup.ref a { text-decoration: none; font-size: 0.75em; padding: 0 1px; }
+
+/* ---------- simulation panel ---------- */
+.sim {
+  margin: 2.4em auto 0.8em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.sim-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.sim-tag { font-size: var(--fs-0); font-weight: 700; color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim-title { font-weight: 600; font-size: var(--fs-2); margin: 0; flex: 1 1 14rem; min-width: 0; line-height: 1.4; }
+.sim-tools { display: flex; gap: 6px; }
+.sim-body { padding: 16px; display: grid; gap: 14px; }
+.sim-views { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.sim-views.one { grid-template-columns: 1fr; }
+.sim-views.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.sim-views.quad { grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) { .sim-views.quad { grid-template-columns: 1fr; } }
+.view { position: relative; min-width: 0; }
+.view-l { font-size: var(--fs-0); color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+.view-l b { color: var(--ink-2); font-weight: 600; }
+.cv { display: block; width: 100%; border-radius: 8px; background: var(--surface-2); touch-action: pan-y; }
+.cv.scene { background: var(--scene); }
+.cv.grab { cursor: grab; touch-action: none; }
+.cv.grab:active { cursor: grabbing; }
+
+.ctls { display: grid; gap: 12px 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; }
+.ctl { display: grid; gap: 4px; min-width: 0; }
+.ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--fs-1); }
+.ctl-top label, .ctl-top span.l { color: var(--ink-2); }
+.ctl-top output { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.ctl select { font: inherit; font-size: var(--fs-1); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 9px; padding: 2px; background: var(--surface-2); justify-self: start; max-width: 100%; }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: var(--fs-1); padding: 4px 12px; border-radius: 7px; cursor: pointer; line-height: 1.6; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); font-weight: 600; }
+.seg button[data-tone="gs"][aria-pressed="true"] { color: var(--gs); }
+.seg button[data-tone="rs"][aria-pressed="true"] { color: var(--rs); }
+.seg button[data-tone="nir"][aria-pressed="true"] { color: var(--nir); }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-1); color: var(--ink-2); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; margin: 0; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--accent) 0 var(--p, 50%), var(--surface-3) var(--p, 50%) 100%); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: var(--surface-3); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); margin-top: -7px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--fs-1); padding: 5px 12px; border-radius: 8px; cursor: pointer; line-height: 1.6; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+.reads { display: flex; flex-wrap: wrap; gap: 8px 10px; padding-top: 2px; }
+.read { background: var(--surface-2); border-radius: 8px; padding: 6px 12px; min-width: 7.5rem; flex: 1 1 7.5rem; }
+.read span { display: block; font-size: var(--fs-0); color: var(--muted); line-height: 1.4; }
+.read b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.5; font-size: var(--fs-1); }
+.read.hl { background: var(--accent-wash); }
+.read.warn { background: var(--rs-wash); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--fs-0); color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.sim-note { font-size: var(--fs-0); color: var(--muted); margin: 0; }
+
+/* ---------- quiz ---------- */
+.quiz-set { counter-reset: q; }
+.quiz { margin: 1.4em auto; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); }
+.quiz .q { font-weight: 600; margin: 0 0 10px; }
+.quiz .q::before { counter-increment: q; content: "Q" counter(q) ". "; color: var(--accent); }
+.quiz .opts { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.quiz .opts li { margin: 0; }
+.quiz .opt {
+  appearance: none; width: 100%; text-align: left; font: inherit; font-size: var(--fs-1); line-height: 1.55; color: var(--ink);
+  background: var(--surface-2); border: 1px solid transparent; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+  display: grid; grid-template-columns: 1.6em 1fr; gap: 4px;
+}
+.quiz .opt:hover { border-color: var(--line); }
+.quiz .opt .k { color: var(--muted); font-weight: 600; }
+.quiz .opt.correct { background: color-mix(in srgb, var(--good) 14%, var(--surface)); border-color: var(--good); }
+.quiz .opt.wrong { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: var(--bad); }
+.quiz .opt[disabled] { cursor: default; }
+.quiz .why { display: none; margin-top: 12px; font-size: var(--fs-1); color: var(--ink-2); border-top: 1px solid var(--line-2); padding-top: 10px; }
+.quiz.done .why { display: block; }
+.quiz .verdict { font-weight: 700; margin-right: 6px; }
+.quiz .verdict.ok { color: var(--good); }
+.quiz .verdict.no { color: var(--bad); }
+.score { margin: 1em auto; font-size: var(--fs-1); color: var(--ink-2); }
+
+.summary ol { counter-reset: s; list-style: none; padding: 0; }
+.summary li { counter-increment: s; position: relative; padding-left: 2.2em; margin: 0.7em 0; }
+.summary li::before { content: counter(s); position: absolute; left: 0; top: 0.1em; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent-wash); color: var(--accent); font-weight: 700; font-size: 0.85em; display: grid; place-items: center; }
+
+/* ---------- prev/next + footer ---------- */
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 56px auto 0; max-width: var(--measure); }
+.pager a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r2); text-decoration: none; color: var(--ink); background: var(--surface); line-height: 1.45; }
+.pager a:hover { border-color: var(--accent); }
+.pager span { display: block; font-size: var(--fs-0); color: var(--muted); }
+.pager .next { text-align: right; grid-column: 2; }
+.site-foot { margin-top: 72px; border-top: 1px solid var(--line); padding-block: 28px 48px; color: var(--muted); font-size: var(--fs-0); line-height: 1.7; }
+.site-foot .shell { display: grid; gap: 10px; }
+.site-foot a { color: var(--ink-2); }
+
+/* ---------- index page ---------- */
+.hero { padding-block: clamp(28px, 6vw, 64px) clamp(24px, 4vw, 40px); overflow-x: clip; }
+.hero-grid { display: grid; gap: clamp(24px, 4vw, 48px); grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; }
+.hero-kicker { color: var(--ink-2); font-size: var(--fs-1); margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hero h1 { font-size: clamp(2.3rem, 5.4vw, 4.1rem); line-height: 1.12; letter-spacing: -0.04em; font-weight: 700; margin: 0 0 24px; }
+.hero h1 .ln { display: block; white-space: nowrap; transition: transform .9s cubic-bezier(.2,.8,.15,1); will-change: transform; }
+.hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.9em); }
+.hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.8em); }
+.hero-lede { font-size: var(--fs-3); line-height: 1.65; color: var(--ink-2); max-width: 34rem; margin-bottom: 26px; }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-cta a { padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: var(--fs-1); }
+.hero-cta .go { background: var(--accent); color: var(--on-accent); }
+.hero-cta .go:hover { background: var(--accent-strong); color: var(--on-accent); }
+.hero-cta .alt { border: 1px solid var(--line); color: var(--ink); background: var(--surface); }
+.hero-cta .alt:hover { border-color: var(--muted); color: var(--ink); }
+.hero-lab { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
+.hero-lab .cv { aspect-ratio: 16 / 10; }
+.hero-lab-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.hero-lab-bar p { margin: 0; font-size: var(--fs-0); color: var(--muted); }
+.stats-strip { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 26px; font-size: var(--fs-1); color: var(--muted); }
+.stats-strip b { color: var(--ink); font-weight: 700; margin-right: 4px; }
+
+.section { padding-block: clamp(36px, 6vw, 64px) 0; }
+.section-h { font-size: var(--fs-4); margin: 0 0 8px; }
+.section-sub { color: var(--ink-2); margin: 0 0 22px; max-width: var(--measure); }
+
+.spec { width: 100%; }
+.spec td:first-child { width: 9.5rem; font-weight: 700; font-size: var(--fs-2); color: var(--ink); white-space: nowrap; font-variant-numeric: normal; }
+.spec td:nth-child(2) { color: var(--ink-2); }
+.spec td:last-child { color: var(--muted); font-size: var(--fs-0); white-space: nowrap; }
+
+.chapters { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+.chapters li { margin: 0; }
+.chapters a { display: grid; grid-template-columns: 3rem minmax(0, 1fr); column-gap: 12px; height: 100%; padding: 16px 18px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-decoration: none; color: var(--ink); }
+.chapters a:hover { border-color: var(--accent); }
+.chapters .n { font-size: 1.55rem; line-height: 1.25; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.chapters h3 { margin: 0 0 4px; font-size: var(--fs-3); }
+.chapters p { margin: 0 0 8px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.chapters .meta { font-size: var(--fs-0); color: var(--muted); }
+.paths { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.path { padding: 16px 18px; border-radius: 12px; background: var(--surface-2); }
+.path h3 { margin: 0 0 4px; font-size: var(--fs-2); }
+.path p { margin: 0 0 10px; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+.path .hops { display: flex; flex-wrap: wrap; gap: 6px; }
+.path .hops a { font-size: var(--fs-0); font-weight: 600; padding: 3px 9px; border-radius: 6px; background: var(--surface); color: var(--ink); text-decoration: none; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.path .hops a:hover { border-color: var(--accent); color: var(--accent); }
+.howto { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.howto div { padding-top: 10px; border-top: 2px solid var(--line); }
+.howto b { display: block; margin-bottom: 4px; }
+.howto p { margin: 0; font-size: var(--fs-1); color: var(--ink-2); line-height: 1.6; }
+
+.glossary-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 1em auto; }
+.glossary-tools input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); flex: 1 1 16rem; min-width: 0; }
+dl.gloss { margin: 0 auto; }
+dl.gloss div { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--fs-1); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero h1 .ln { white-space: normal; }
+  .hero[data-mode="rs"] h1 .ln:nth-child(2) { transform: translateX(0.6em); }
+  .hero[data-mode="rs"] h1 .ln:nth-child(3) { transform: translateX(1.2em); }
+}
+@media (max-width: 560px) {
+  body { font-size: 1rem; line-height: 1.72; }
+  .brand small { display: none; }
+  .crumb { display: none; }
+  .sim-body { padding: 12px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager .next { grid-column: 1; }
+  .spec td:first-child { white-space: normal; width: auto; }
+  .spec td:last-child { white-space: normal; }
+  .goals { padding: 14px 16px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+@media print {
+  .topbar, .sim-tools, .pager { display: none; }
+}
+
+/* ---------- SVG figure vocabulary ---------- */
+.fig text { font-family: var(--font); fill: var(--ink-2); font-size: 13px; }
+.fig .t-s { font-size: 11.5px; fill: var(--muted); }
+.fig .t-b { font-weight: 600; fill: var(--ink); }
+.fig .t-gs { fill: var(--gs); font-weight: 600; }
+.fig .t-rs { fill: var(--rs); font-weight: 600; }
+.fig .t-nir { fill: var(--nir); font-weight: 600; }
+.fig .t-on { fill: #fff; font-weight: 600; }
+.fig .k-ink { fill: var(--ink); } .fig .k-ink2 { fill: var(--ink-2); } .fig .k-muted { fill: var(--muted); }
+.fig .k-surf { fill: var(--surface); } .fig .k-surf2 { fill: var(--surface-2); } .fig .k-surf3 { fill: var(--surface-3); } .fig .k-bg { fill: var(--bg); }
+.fig .k-gs { fill: var(--gs); } .fig .k-rs { fill: var(--rs); } .fig .k-nir { fill: var(--nir); }
+.fig .k-gsw { fill: var(--gs-wash); } .fig .k-rsw { fill: var(--rs-wash); } .fig .k-nirw { fill: var(--nir-wash); }
+.fig .k-r { fill: var(--ch-r); } .fig .k-g { fill: var(--ch-g); } .fig .k-b { fill: var(--ch-b); } .fig .k-ir { fill: var(--ch-ir); }
+.fig .k-line { fill: var(--line); } .fig .k-none { fill: none; }
+.fig .l-ink { stroke: var(--ink); fill: none; } .fig .l-ink2 { stroke: var(--ink-2); fill: none; } .fig .l-line { stroke: var(--line); fill: none; } .fig .l-muted { stroke: var(--muted); fill: none; }
+.fig .l-gs { stroke: var(--gs); fill: none; } .fig .l-rs { stroke: var(--rs); fill: none; } .fig .l-nir { stroke: var(--nir); fill: none; }
+.fig .l-surf { stroke: var(--surface); } .fig .l-bg { stroke: var(--bg); }
+.fig .w1 { stroke-width: 1; } .fig .w15 { stroke-width: 1.5; } .fig .w2 { stroke-width: 2; } .fig .w3 { stroke-width: 3; }
+.fig .dash { stroke-dasharray: 4 4; }
+.fig-pair { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.fig-pair > div { min-width: 0; }
+.fig-sub { font-size: var(--fs-1); font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 560px) {
+  .fig text { font-size: 17px; }
+  .fig .t-s { font-size: 15.5px; }
+  .spec td:last-child { display: none; }
+  .fig .m-hide { display: none; }
+  .fig-box svg.wide-svg { min-width: 640px; }
+  .fig text.wide-t { font-size: 15px; }
+}
+</style>
+<script>try{var t=localStorage.getItem('sb-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-slug="review">
+<main id="main" class="shell">
+  <header class="ch-head prose">
+    <div class="ch-label"><span class="ch-n">Chapter 10</span><span>마무리</span></div>
+    <h1>종합 퀴즈와 용어집</h1>
+    <p class="ch-lede">1장부터 9장까지의 내용을 한 번에 점검합니다. 틀린 문항은 해설 끝의 장 번호를 따라 돌아가 실험을 다시 해 보세요. 아래 용어집은 검색할 수 있습니다.</p>
+    <details class="toc" open></details>
+  </header>
+
+  <article class="article">
+    <h2>종합 퀴즈 20문항</h2>
+    <div class="quiz-set">
+      <div class="quiz" data-a="2"><p class="q">글로벌 셔터와 롤링 셔터의 차이를 가장 정확히 말한 것은?</p>
+        <ol class="opts"><li>글로벌 셔터는 모든 행을 동시에 읽는다</li><li>글로벌 셔터는 모든 픽셀의 노출 시작과 끝이 같고, 읽기는 저장 노드에서 행 단위로 한다</li><li>롤링 셔터는 기계식 셔터를 쓴다</li><li>롤링 셔터는 노출 시간이 행마다 다르다</li></ol>
+        <div class="why">노출 창이 같다는 것이 핵심입니다. 읽기는 두 방식 모두 행 단위입니다. (1장)</div></div>
+      <div class="quiz" data-a="4"><p class="q">2,000행, 라인 시간 10 µs인 롤링 셔터 센서로 노출 1 ms 사진을 찍었다. 위아래 행의 노출 시작 차이는?</p>
+        <ol class="opts"><li>1 ms</li><li>10 µs</li><li>2 ms</li><li>20 ms</li></ol>
+        <div class="why">\(2000 \times 10\,\mu s = 20\) ms. 노출 시간과 무관합니다. (1장)</div></div>
+      <div class="quiz" data-a="1"><p class="q">IWR 모드가 가능하려면 픽셀에 무엇이 필요한가?</p>
+        <ol class="opts"><li>포토다이오드와 독립된 저장소</li><li>더 큰 마이크로렌즈</li><li>열마다 ADC 두 개</li><li>IR 차단 필터</li></ol>
+        <div class="why">저장소에 이전 프레임을 보관하는 동안 포토다이오드가 다음 노출을 해야 합니다. (1·3장)</div></div>
+      <div class="quiz" data-a="3"><p class="q">시속 72 km(20 m/s) 차에서 10 m 옆의 기둥을 f = 6 mm, 픽셀 3 µm, 읽기 15 ms 롤링 셔터로 찍었다. 화면 높이 전체의 어긋남은?</p>
+        <ol class="opts"><li>약 6 px</li><li>약 20 px</li><li>약 60 px</li><li>약 600 px</li></ol>
+        <div class="why">\(v_{px} = 20 \times 0.006 / (10 \times 3\times10^{-6}) = 4000\) px/s, × 0.015 s = 60 px. (2장)</div></div>
+      <div class="quiz" data-a="2"><p class="q">글로벌 셔터로 바꿔도 남는 왜곡은?</p>
+        <ol class="opts"><li>세로 막대의 기울어짐</li><li>노출 시간 동안의 모션 블러</li><li>짧은 플래시의 부분 노출 띠</li><li>프로펠러가 휘어 보이는 현상</li></ol>
+        <div class="why">블러는 노출 시간의 문제입니다. (2장)</div></div>
+      <div class="quiz" data-a="4"><p class="q">4T 픽셀의 CDS가 FD 리셋 잡음을 지울 수 있는 이유는?</p>
+        <ol class="opts"><li>소스 팔로워 이득이 1보다 작아서</li><li>FD가 차광되어 있어서</li><li>ADC가 두 번 변환해서</li><li>같은 리셋 동작에서 나온 잡음이 리셋 레벨과 신호 레벨에 똑같이 들어 있어서</li></ol>
+        <div class="why">리셋 → 리셋 레벨 읽기 → 전송 → 신호 레벨 읽기 순서 덕분입니다. (3장)</div></div>
+      <div class="quiz" data-a="3"><p class="q">전압 영역 GS 픽셀에서 상쇄되지 않고 남는 잡음은?</p>
+        <ol class="opts"><li>FD 리셋 잡음</li><li>포토다이오드 리셋 잡음</li><li>저장 커패시터의 샘플링 kT/C 잡음</li><li>열 ADC의 양자화 잡음만</li></ol>
+        <div class="why">C1, C2에 전압을 샘플링할 때의 잡음은 서로 독립이라 차이를 내도 남습니다. (3·4장)</div></div>
+      <div class="quiz" data-a="1"><p class="q">C1 = C2 = 50 fF, 변환 이득 100 µV/e⁻, SF 이득 0.85일 때 샘플링 잡음(전자 환산)에 가장 가까운 값은? (300 K)</p>
+        <ol class="opts"><li>약 4.8 e⁻</li><li>약 0.5 e⁻</li><li>약 48 e⁻</li><li>약 16 e⁻</li></ol>
+        <div class="why">\(\sqrt{2kT/C} \approx \sqrt{2 \times 4.14\times10^{-21} / 5\times10^{-14}} \approx 407\,\mu V\), ÷ (100 µV × 0.85) ≈ 4.8 e⁻. (4장)</div></div>
+      <div class="quiz" data-a="2"><p class="q">픽셀 단위 Cu–Cu 하이브리드 본딩이 작은 GS 픽셀에 주는 가장 큰 이점은?</p>
+        <ol class="opts"><li>마이크로렌즈를 없앨 수 있다</li><li>저장 커패시터와 회로를 포토다이오드 아래 웨이퍼로 옮길 수 있다</li><li>ADC 비트 수가 늘어난다</li><li>컬러 필터가 필요 없어진다</li></ol>
+        <div class="why">면적 문제를 수직으로 풉니다. (3장)</div></div>
+      <div class="quiz" data-a="4"><p class="q">노출 20 µs, 읽기 25 ms, PLS −90 dB인 GS 센서에서 보관 중에도 같은 밝기로 비치는 영역의 마지막 행 오염은?</p>
+        <ol class="opts"><li>약 0.004 %</li><li>약 0.4 %</li><li>약 40 %</li><li>약 4 %</li></ol>
+        <div class="why">−90 dB ≈ 3.16×10⁻⁵, × (25 ms / 20 µs = 1250) ≈ 0.04 = 4 %. (4장)</div></div>
+      <div class="quiz" data-a="3"><p class="q">GS 센서를 60 °C에서 쓰다가 88 °C로 올렸다(암전류 7 °C마다 2배). 저장소 암전류는 약 몇 배?</p>
+        <ol class="opts"><li>2배</li><li>4배</li><li>16배</li><li>28배</li></ol>
+        <div class="why">28 °C / 7 °C = 4 → 2⁴ = 16배. (4장)</div></div>
+      <div class="quiz" data-a="2"><p class="q">940 nm에서 실리콘의 흡수 깊이(1/α)에 가장 가까운 값은?</p>
+        <ol class="opts"><li>1.6 µm</li><li>55 µm</li><li>0.4 µm</li><li>5 mm</li></ol>
+        <div class="why">α ≈ 183 cm⁻¹ → 1/α ≈ 54.6 µm. (5장)</div></div>
+      <div class="quiz" data-a="1"><p class="q">NIR QE를 올리려 광포획 구조를 넣을 때 함께 필요한 것은?</p>
+        <ol class="opts"><li>깊은 DTI</li><li>얇은 에피층</li><li>IR 차단 필터</li><li>더 긴 라인 시간</li></ol>
+        <div class="why">옆으로 꺾인 빛과 전하가 이웃 픽셀로 새는 것을 막아야 합니다. (5장)</div></div>
+      <div class="quiz" data-a="4"><p class="q">야외 능동 조명 카메라에서 940 nm가 유리한 가장 큰 이유는?</p>
+        <ol class="opts"><li>실리콘 QE가 더 높다</li><li>LED가 더 싸다</li><li>눈 안전 규격이 적용되지 않는다</li><li>대기 수증기 흡수로 해당 대역의 햇빛이 적다</li></ol>
+        <div class="why">AM1.5G 스펙트럼은 930~960 nm가 깊게 파여 있습니다. (5장)</div></div>
+      <div class="quiz" data-a="3"><p class="q">노출 100 µs, 읽기 20 ms에서 화면 전체를 고르게 비추는 데 롤링 셔터는 글로벌 셔터보다 조명 에너지가 몇 배 필요한가?</p>
+        <ol class="opts"><li>2배</li><li>20배</li><li>약 200배</li><li>2,000배</li></ol>
+        <div class="why">(0.1 + 20) / 0.1 ≈ 201. (6장)</div></div>
+      <div class="quiz" data-a="2"><p class="q">조명 켜짐/꺼짐 두 프레임 차분에서 움직임 아티팩트를 줄이는 방법은?</p>
+        <ol class="opts"><li>노출을 늘린다</li><li>두 노출 사이 간격을 줄인다</li><li>필터 대역을 넓힌다</li><li>롤링 셔터를 쓴다</li></ol>
+        <div class="why">짧은 간격 이중 노출(예: 2 µs)이 해법입니다. (6장)</div></div>
+      <div class="quiz" data-a="1"><p class="q">4×4 RGB-IR 배열의 특징으로 옳은 것은?</p>
+        <ol class="opts"><li>초록 50 %를 유지해 밝기 해상도를 지키고, IR 25 %·R 12.5 %·B 12.5 %이다</li><li>모든 채널이 25 %씩이다</li><li>IR 픽셀이 없다</li><li>리모자이크가 필요 없다</li></ol>
+        <div class="why">기존 ISP와 맞추려면 베이어로의 리모자이크가 필요합니다. (7장)</div></div>
+      <div class="quiz" data-a="4"><p class="q">하이브리드 셔터 RGB-IR 센서(예: 소니 IMX775)의 셔터 배치로 옳은 것은?</p>
+        <ol class="opts"><li>RGB 글로벌, NIR 롤링</li><li>둘 다 롤링</li><li>둘 다 글로벌</li><li>RGB 롤링, NIR 글로벌</li></ol>
+        <div class="why">컬러는 롤링의 HDR로, NIR은 글로벌의 펄스 동기로 다룹니다. (7장)</div></div>
+      <div class="quiz" data-a="3"><p class="q">로봇 VIO에서 롤링 셔터가 만드는 평균 자세 편향은 대략 어떤 양에 비례하는가?</p>
+        <ol class="opts"><li>노출 시간 × 조도</li><li>픽셀 피치 × 해상도</li><li>각속도 × 읽기 시간</li><li>프레임률 × 비트 수</li></ol>
+        <div class="why">\(\Delta\theta \sim \omega T_{\mathrm{read}}/2\). (8장)</div></div>
+      <div class="quiz" data-a="2"><p class="q">기준선 5 cm 스테레오에서 거리 1 m 물체가 기준선 방향으로 2 m/s로 움직이고 두 카메라 시각이 1 ms 어긋났다. 깊이 오차는?</p>
+        <ol class="opts"><li>0.4 cm</li><li>4 cm</li><li>40 cm</li><li>0.04 cm</li></ol>
+        <div class="why">\(Z v \Delta t / B = 1 \times 2 \times 0.001 / 0.05 = 0.04\) m = 4 cm. (8장)</div></div>
+    </div>
+
+    <h2>용어집</h2>
+    <div class="glossary-tools"><input id="gloss-q" type="search" placeholder="용어 검색: 예) PLS, 하이브리드, 940" aria-label="용어 검색"><span id="gloss-n" class="sim-note"></span></div>
+    <dl class="gloss" id="gloss">
+      <div><dt>글로벌 셔터 (global shutter)</dt><dd>모든 픽셀이 같은 시간 창 동안 노출하는 전자 셔터. 노출 후 신호를 픽셀 안 저장소에 두고 행 단위로 읽는다. → 1·3장</dd></div>
+      <div><dt>롤링 셔터 (rolling shutter)</dt><dd>행마다 노출 시작과 끝이 라인 시간만큼 어긋나는 전자 셔터. → 1·2장</dd></div>
+      <div><dt>라인 시간 (line time)</dt><dd>한 행을 읽는 데 걸리는 시간. 롤링 셔터의 행 간 시간차. → 1장</dd></div>
+      <div><dt>읽기 시간 (readout time)</dt><dd>첫 행부터 마지막 행까지 읽는 시간. 행 수 × 라인 시간. → 1장</dd></div>
+      <div><dt>ITR / IWR</dt><dd>노출 후 읽기(integrate then read) / 읽는 동안 다음 노출(integrate while read, 파이프라인) 모드. → 1장</dd></div>
+      <div><dt>스큐 (skew)</dt><dd>움직이는 물체나 카메라 팬으로 영상이 기울어지는 롤링 셔터 왜곡. → 2장</dd></div>
+      <div><dt>젤로 (jello, wobble)</dt><dd>카메라 진동이 행마다 다른 위치로 기록되어 영상이 물결치는 왜곡. → 2장</dd></div>
+      <div><dt>플래시 밴드 (flash banding)</dt><dd>짧은 플래시가 일부 행의 노출 창에만 걸려 생기는 밝은 띠. → 2장</dd></div>
+      <div><dt>플리커 (flicker)</dt><dd>교류·PWM 조명의 밝기 깜박임. 롤링 셔터에서는 가로 줄무늬, 글로벌 셔터에서는 프레임 간 밝기 변동. → 2장</dd></div>
+      <div><dt>LFM (LED flicker mitigation)</dt><dd>PWM 신호등·전광판이 꺼져 보이지 않도록 하는 차량용 센서 기법. → 2장</dd></div>
+      <div><dt>핀드 포토다이오드 (PPD)</dt><dd>표면을 p+ 층으로 고정한 포토다이오드. 전하를 완전히 전송하고 암전류가 작다. → 3장</dd></div>
+      <div><dt>플로팅 디퓨전 (FD)</dt><dd>전하를 전압으로 바꾸는 작은 n+ 노드. → 3장</dd></div>
+      <div><dt>전송 게이트 (TX)</dt><dd>포토다이오드(또는 저장 다이오드)의 전하를 FD로 옮기는 트랜지스터. → 3장</dd></div>
+      <div><dt>소스 팔로워 (SF)</dt><dd>FD 전압을 열 신호선으로 내보내는 버퍼 트랜지스터. → 3장</dd></div>
+      <div><dt>CDS (correlated double sampling)</dt><dd>리셋 레벨과 신호 레벨의 차이를 읽어 공통 잡음(kTC)을 지우는 방법. → 3장</dd></div>
+      <div><dt>kTC 잡음 (reset noise)</dt><dd>커패시터를 스위치로 리셋·샘플링할 때 남는 열잡음. 전압으로 √(kT/C). → 3·4장</dd></div>
+      <div><dt>변환 이득 (conversion gain)</dt><dd>전자 하나가 FD에서 만드는 전압(µV/e⁻). q/C<sub>FD</sub>. → 3장</dd></div>
+      <div><dt>FWC (full well capacity)</dt><dd>픽셀이 포화 전까지 담을 수 있는 전자 수. → 1·4장</dd></div>
+      <div><dt>AB 게이트 (anti-blooming, overflow gate)</dt><dd>포토다이오드를 전체 리셋하고 넘치는 전하를 버리는 게이트. GS 픽셀의 노출 시작을 정한다. → 3장</dd></div>
+      <div><dt>저장 다이오드 · 메모리 노드 (SD, MN)</dt><dd>전하 영역 GS에서 노출이 끝난 전하를 보관하는 차광된 핀드 다이오드. → 3장</dd></div>
+      <div><dt>전하 영역 GS (charge-domain GS)</dt><dd>신호를 전하 그대로 저장 다이오드에 보관하는 GS 픽셀. 진짜 CDS 가능. → 3장</dd></div>
+      <div><dt>전압 영역 GS (voltage-domain GS)</dt><dd>리셋·신호 전압을 픽셀 안 커패시터에 샘플링해 보관하는 GS 픽셀. → 3장</dd></div>
+      <div><dt>MIM 커패시터</dt><dd>금속–절연막–금속 구조의 커패시터. 배선층이나 아래 웨이퍼에 만들어 VDGS 저장소로 쓴다. → 3·4장</dd></div>
+      <div><dt>고유전율 유전막 (high-k)</dt><dd>HfO₂, ZrO₂, Al₂O₃처럼 유전율이 큰 막. 같은 두께에서 커패시턴스를 키운다. → 4장</dd></div>
+      <div><dt>TDDB</dt><dd>시간 의존 절연 파괴. 얇은 유전막에 높은 전계를 오래 걸 때의 신뢰성 지표. → 4장</dd></div>
+      <div><dt>하이브리드 본딩 (Cu–Cu hybrid bonding)</dt><dd>구리 패드와 산화막을 동시에 접합해 웨이퍼를 미세 피치로 연결하는 기술. → 3장</dd></div>
+      <div><dt>BSI (backside illumination)</dt><dd>배선층 반대편(뒷면)으로 빛을 받는 픽셀 구조. → 3·5장</dd></div>
+      <div><dt>적층 센서 (stacked sensor)</dt><dd>픽셀 웨이퍼와 로직(·메모리) 웨이퍼를 겹쳐 만든 센서. → 1·3장</dd></div>
+      <div><dt>PLS (parasitic light sensitivity)</dt><dd>보관 중 저장소가 빛에 반응하는 정도를 포토다이오드와 비교한 비율. 20 log로 dB 표기. → 4장</dd></div>
+      <div><dt>셔터 효율 (GSE)</dt><dd>PLS를 반대로 나타낸 글로벌 셔터 성능 지표. → 4장</dd></div>
+      <div><dt>암전류 (dark current)</dt><dd>빛 없이 열적으로 생기는 전하. 온도 6~8 °C마다 약 2배. → 4장</dd></div>
+      <div><dt>DSNU · PRNU</dt><dd>픽셀마다 다른 암신호(DSNU)와 감도(PRNU)의 고정 패턴. → 4장</dd></div>
+      <div><dt>PTC (photon transfer curve)</dt><dd>신호 대 잡음을 로그-로그로 그린 곡선. 기울기 0·½·1 구간. → 4장</dd></div>
+      <div><dt>다이내믹 레인지 (DR)</dt><dd>FWC와 잡음 바닥의 비. 20 log로 dB. → 4장</dd></div>
+      <div><dt>양자효율 (QE)</dt><dd>들어온 광자 중 전자로 바뀌어 모이는 비율. → 5장</dd></div>
+      <div><dt>흡수 계수 · 흡수 깊이</dt><dd>빛이 실리콘에서 1/e로 줄어드는 거리가 1/α. 940 nm에서 약 55 µm. → 5장</dd></div>
+      <div><dt>밴드갭 (band gap)</dt><dd>실리콘 1.12 eV. 약 1.1 µm보다 긴 빛은 흡수하지 못한다. → 5장</dd></div>
+      <div><dt>광포획 (light trapping)</dt><dd>산란·회절·반사로 빛의 실리콘 내 경로를 늘리는 구조. → 5장</dd></div>
+      <div><dt>DTI (deep trench isolation)</dt><dd>픽셀 사이를 깊은 트렌치로 막아 빛과 전하의 누설을 줄이는 구조. → 3·5장</dd></div>
+      <div><dt>크로스토크 (crosstalk)</dt><dd>빛(광학적)이나 전하(전기적)가 이웃 픽셀로 새는 현상. → 5장</dd></div>
+      <div><dt>MTF</dt><dd>공간 주파수별 대비 전달 정도. 선명도의 지표. → 5장</dd></div>
+      <div><dt>NIR (근적외선)</dt><dd>대략 750~1,000 nm 빛. 실리콘 센서의 능동 조명에는 850·940 nm를 주로 쓴다. → 5·6장</dd></div>
+      <div><dt>AM1.5G</dt><dd>지표 태양광의 기준 스펙트럼(ASTM G173). → 5장</dd></div>
+      <div><dt>이중 대역 필터 (DBF)</dt><dd>가시광과 좁은 NIR 대역만 통과시키는 필터. RGB-IR 카메라에 쓴다. → 7장</dd></div>
+      <div><dt>IR 차단 필터 (IR-cut)</dt><dd>일반 컬러 카메라에서 약 650 nm 이상을 막는 필터. → 7장</dd></div>
+      <div><dt>스트로브 (strobe)</dt><dd>노출 창에 맞춘 짧고 강한 조명 펄스. → 6장</dd></div>
+      <div><dt>VCSEL</dt><dd>수직 공진 표면 발광 레이저. ToF·구조광 조명에 쓴다. → 6장</dd></div>
+      <div><dt>글린트 (glint)</dt><dd>조명이 각막에 만드는 밝은 반사점. 시선 추적의 기준. → 6장</dd></div>
+      <div><dt>밝은 동공 · 어두운 동공</dt><dd>조명이 광축 위면 망막 반사로 동공이 밝고, 광축 밖이면 어둡다. → 6장</dd></div>
+      <div><dt>단속 운동 (saccade)</dt><dd>시선을 옮기는 빠른 눈 운동. 수백 °/s. → 6장</dd></div>
+      <div><dt>능동 스테레오 (active stereo)</dt><dd>NIR 패턴을 비춘 두 카메라의 시차로 깊이를 재는 방식. → 6·8장</dd></div>
+      <div><dt>구조광 (structured light)</dt><dd>알려진 패턴의 변형으로 깊이를 재는 방식. → 6장</dd></div>
+      <div><dt>iToF (indirect time of flight)</dt><dd>변조된 빛의 위상 지연으로 거리를 재는 방식. → 6·8장</dd></div>
+      <div><dt>CFA · 베이어 (color filter array)</dt><dd>픽셀마다 다른 색 필터를 올린 배열. 베이어는 RGGB 2×2. → 7장</dd></div>
+      <div><dt>RGB-IR</dt><dd>컬러 필터 일부를 IR 픽셀로 바꿔 컬러와 NIR을 함께 찍는 센서. → 7장</dd></div>
+      <div><dt>리모자이크 (remosaic)</dt><dd>RGB-IR 배열을 기존 ISP가 받는 베이어 배열로 다시 만드는 처리. → 7장</dd></div>
+      <div><dt>IR 차감 (IR subtraction)</dt><dd>RGB 채널에 섞인 NIR을 IR 픽셀 값에 계수를 곱해 빼는 처리. → 7장</dd></div>
+      <div><dt>하이브리드 셔터</dt><dd>한 센서에서 RGB는 롤링, NIR은 글로벌로 따로 제어하는 방식. → 7장</dd></div>
+      <div><dt>DMS · OMS</dt><dd>운전자 모니터링 시스템 · 승객 모니터링 시스템. → 7장</dd></div>
+      <div><dt>ADDW · GSR</dt><dd>첨단 운전자 주의분산 경고 · EU 일반 안전 규정. 2026년 7월 모든 신차 의무. → 7장</dd></div>
+      <div><dt>Physical AI</dt><dd>현실 세계에서 지각하고 판단해 몸을 움직이는 AI 시스템. 로봇·휴머노이드·자율주행. → 8장</dd></div>
+      <div><dt>VIO (visual-inertial odometry)</dt><dd>카메라와 IMU를 합쳐 위치·자세를 추정하는 기술. → 8장</dd></div>
+      <div><dt>SLAM</dt><dd>위치 추정과 지도 작성을 동시에 하는 기술. → 8장</dd></div>
+      <div><dt>하드웨어 트리거 (hardware trigger)</dt><dd>여러 카메라의 노출 시작을 전기 신호로 맞추는 동기화 방법. → 8장</dd></div>
+      <div><dt>이벤트 센서 (event-based vision sensor)</dt><dd>밝기가 변한 픽셀만 비동기적으로 출력하는 센서. → 9장</dd></div>
+      <div><dt>MIPI CSI-2 · SLVS-EC</dt><dd>이미지 센서의 고속 출력 인터페이스 규격. → 1·9장</dd></div>
+    </dl>
+  </article>
+  <nav class="pager" aria-label="챕터 이동"></nav>
+</main>
+<script>
+/* ShutterBook core: page chrome, theme, controls, canvas helpers, plotting, quiz. */
+(function () {
+  'use strict';
+  const SB = (window.SB = window.SB || {});
+  const root = document.documentElement;
+  const BASE = root.getAttribute('data-base') || '';
+
+  SB.CHAPTERS = [
+    { n: '01', slug: 'exposure', t: '노출의 시간 구조', d: '리셋 → 적분 → 읽기. 롤링과 글로벌 셔터는 이 세 동작의 타이밍이 다르다.', k: '타이밍 다이어그램 · 라인 시간 · 병렬 읽기' },
+    { n: '02', slug: 'rolling', t: '롤링 셔터 왜곡 실험실', d: '스큐, 젤로, 프로펠러, 플래시 밴드, LED 플리커를 직접 만들어 본다.', k: '왜곡 5종 시뮬레이터' },
+    { n: '03', slug: 'pixel', t: '글로벌 셔터 픽셀 해부', d: '4T 픽셀에서 출발해 전하 영역·전압 영역 GS 픽셀과 적층 구조까지.', k: '픽셀 동작 애니메이션 · 3D 적층 모델' },
+    { n: '04', slug: 'metrics', t: 'GS의 성능 지표', d: 'PLS(기생 광감도), 저장 노드 누설, kTC 노이즈, 저장 커패시터 설계.', k: 'PLS 고스트 · 커패시터 설계기 · PTC' },
+    { n: '05', slug: 'nir', t: '실리콘과 근적외선', d: '850·940 nm 빛은 실리콘 깊숙이 들어간다. 흡수 깊이와 QE, 광포획 구조.', k: '흡수 깊이 몬테카를로 · QE 계산기' },
+    { n: '06', slug: 'ir-gs', t: 'IR 조명과 글로벌 셔터', d: '능동 조명을 노출 창에 맞추면 무엇이 좋아지는가. 스트로브와 주변광 억제.', k: '스트로브 동기화 · 주변광 SNR · 시선 추적' },
+    { n: '07', slug: 'rgbir', t: 'RGB-IR 센서', d: '한 센서로 컬러와 NIR을 함께. 필터 배열, IR 누설 보정, 최신 하이브리드 셔터.', k: 'CFA 탐험기 · 분광 응답 · 처리 파이프라인' },
+    { n: '08', slug: 'physical-ai', t: 'Physical AI와 글로벌 셔터', d: '로봇·휴머노이드·자율주행이 왜 글로벌 셔터를 원하는가. VIO, 깊이, 동기화, 지연.', k: 'VIO 오차 · 지연 예산 · 스테레오 깊이' },
+    { n: '09', slug: 'landscape', t: '제품 지형도와 로드맵', d: '대표 GS·NIR·RGB-IR 센서를 한눈에. 픽셀 피치와 해상도, 적층 기술의 흐름.', k: '센서 지도 · 연표' },
+    { n: '10', slug: 'review', t: '종합 퀴즈와 용어집', d: '전체 내용을 점검하는 종합 퀴즈와 검색 가능한 용어집.', k: '퀴즈 20문항 · 용어 66개' }
+  ];
+  SB.base = BASE;
+
+  /* ---------------- theme ---------------- */
+  const THEME_KEY = 'sb-theme';
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  SB.isDark = function () {
+    const a = root.getAttribute('data-theme');
+    if (a) return a === 'dark';
+    return !!(mq && mq.matches);
+  };
+  function themeChanged() {
+    colorCache = null;
+    document.dispatchEvent(new CustomEvent('sb:theme'));
+  }
+  SB.setTheme = function (t) {
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+    else root.removeAttribute('data-theme');
+    try { if (t) localStorage.setItem(THEME_KEY, t); else localStorage.removeItem(THEME_KEY); } catch (e) { /* storage unavailable */ }
+    themeChanged();
+  };
+  if (mq) {
+    const h = () => { if (!root.getAttribute('data-theme')) themeChanged(); };
+    if (mq.addEventListener) mq.addEventListener('change', h); else if (mq.addListener) mq.addListener(h);
+  }
+
+  /* ---------------- colors ---------------- */
+  let colorCache = null;
+  SB.c = function (name) {
+    if (!colorCache) colorCache = {};
+    if (!(name in colorCache)) colorCache[name] = getComputedStyle(root).getPropertyValue('--' + name).trim() || '#888';
+    return colorCache[name];
+  };
+  SB.rgba = function (color, a) {
+    let c = color.trim();
+    if (c.startsWith('rgba')) return c.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgba($1,$2,$3,' + a + ')');
+    if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', ',' + a + ')');
+    if (c[0] === '#') {
+      if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+      const n = parseInt(c.slice(1, 7), 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    return c;
+  };
+  SB.mix = function (c1, c2, t) {
+    const p = (c) => { c = c.trim(); if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]; const n = parseInt(c.slice(1, 7), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+    const a = p(c1), b = p(c2);
+    return 'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',') + ')';
+  };
+  /* wavelength (nm) → approximate display colour; NIR shown as crimson by convention */
+  SB.waveColor = function (nm) {
+    if (nm >= 760) return SB.c('nir');
+    let r = 0, g = 0, b = 0;
+    if (nm < 440) { r = -(nm - 440) / 60; b = 1; }
+    else if (nm < 490) { g = (nm - 440) / 50; b = 1; }
+    else if (nm < 510) { g = 1; b = -(nm - 510) / 20; }
+    else if (nm < 580) { r = (nm - 510) / 70; g = 1; }
+    else if (nm < 645) { r = 1; g = -(nm - 645) / 65; }
+    else { r = 1; }
+    let f = 1;
+    if (nm < 420) f = 0.4 + 0.6 * (nm - 380) / 40; else if (nm > 700) f = 0.4 + 0.6 * (760 - nm) / 60;
+    const k = (v) => Math.round(255 * Math.pow(Math.max(0, v) * f, 0.8));
+    return 'rgb(' + k(r) + ',' + k(g) + ',' + k(b) + ')';
+  };
+
+  /* ---------------- numbers ---------------- */
+  SB.f = function (x, d) {
+    if (d === undefined) d = 2;
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  };
+  SB.fx = function (x, d) {
+    if (!isFinite(x)) return '—';
+    return Number(x).toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: d });
+  };
+  SB.sig = function (x, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+    return SB.f(Number(x.toFixed(Math.min(d, 12))), d);
+  };
+  const PREF = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p'], [1e-15, 'f']];
+  SB.eng = function (x, unit, n) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0 ' + (unit || '');
+    const ax = Math.abs(x);
+    for (const [s, p] of PREF) {
+      if (ax >= s * 0.9995) return SB.sig(x / s, n || 3) + ' ' + p + (unit || '');
+    }
+    return SB.sig(x / 1e-15, n || 3) + ' f' + (unit || '');
+  };
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  SB.sci = function (x, d) {
+    if (!isFinite(x) || x === 0) return SB.f(x, d);
+    const e = Math.floor(Math.log10(Math.abs(x)));
+    const m = x / Math.pow(10, e);
+    const ms = Math.abs(m - 1) < 1e-9 && !d ? '' : SB.fx(m, d === undefined ? 1 : d) + '×';
+    return ms + '10' + String(e).split('').map((c) => SUP[c] || c).join('');
+  };
+  SB.clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  SB.lerp = (a, b, t) => a + (b - a) * t;
+  SB.interp = function (table, x) { /* table: [[x,y],...] ascending */
+    if (x <= table[0][0]) return table[0][1];
+    if (x >= table[table.length - 1][0]) return table[table.length - 1][1];
+    let lo = 0, hi = table.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (table[m][0] <= x) lo = m; else hi = m; }
+    const t = (x - table[lo][0]) / (table[hi][0] - table[lo][0]);
+    return table[lo][1] + t * (table[hi][1] - table[lo][1]);
+  };
+  SB.dB = (r) => 20 * Math.log10(r);
+
+  /* ---------------- random ---------------- */
+  SB.rng = function (seed) {
+    let a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  SB.gauss = function (r) {
+    let u = 0, v = 0;
+    while (u === 0) u = r();
+    while (v === 0) v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  SB.poisson = function (r, lam) {
+    if (lam <= 0) return 0;
+    if (lam > 40) return Math.max(0, Math.round(lam + Math.sqrt(lam) * SB.gauss(r)));
+    const L = Math.exp(-lam); let k = 0, p = 1;
+    do { k++; p *= r(); } while (p > L);
+    return k - 1;
+  };
+
+  /* ---------------- motion preference ---------------- */
+  SB.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ---------------- canvas ---------------- */
+  SB.canvas = function (cv, draw, opts) {
+    opts = opts || {};
+    const ctx = cv.getContext('2d');
+    const o = { cv: cv, ctx: ctx, w: 0, h: 0, dpr: 1 };
+    let lastW = -1;
+    function size(force) {
+      const w = Math.max(40, Math.round(cv.clientWidth || cv.parentElement.clientWidth || 300));
+      if (!force && w === lastW) return false;
+      lastW = w;
+      let asp = typeof opts.aspect === 'function' ? opts.aspect(w) : (opts.aspect || 1.6);
+      let h = opts.height ? (typeof opts.height === 'function' ? opts.height(w) : opts.height) : Math.round(w / asp);
+      if (opts.maxH) h = Math.min(h, opts.maxH);
+      if (opts.minH) h = Math.max(h, opts.minH);
+      cv.style.height = h + 'px';
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      o.w = w; o.h = h; o.dpr = dpr;
+      return true;
+    }
+    o.draw = function () {
+      ctx.setTransform(o.dpr, 0, 0, o.dpr, 0, 0);
+      ctx.clearRect(0, 0, o.w, o.h);
+      draw && draw(o);
+    };
+    o.resize = function () { size(true); o.draw(); };
+    size(true);
+    Promise.resolve().then(() => o.draw());
+    const target = cv.parentElement || cv;
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { if (size(false)) o.draw(); });
+      ro.observe(target);
+    } else {
+      window.addEventListener('resize', () => { if (size(false)) o.draw(); });
+    }
+    document.addEventListener('sb:theme', () => o.draw());
+    return o;
+  };
+
+  /* pointer helper: returns position in CSS px relative to canvas */
+  SB.pointer = function (cv, handlers) {
+    let down = false;
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    cv.addEventListener('pointerdown', (e) => { down = true; try { cv.setPointerCapture(e.pointerId); } catch (_) { } handlers.down && handlers.down(pos(e), e); });
+    cv.addEventListener('pointermove', (e) => { if (down) handlers.drag && handlers.drag(pos(e), e); else handlers.move && handlers.move(pos(e), e); });
+    const up = (e) => { if (!down) return; down = false; handlers.up && handlers.up(pos(e), e); };
+    cv.addEventListener('pointerup', up);
+    cv.addEventListener('pointercancel', up);
+    cv.addEventListener('pointerleave', (e) => { if (!down) handlers.leave && handlers.leave(e); });
+  };
+
+  /* ---------------- animation ---------------- */
+  SB.anim = function (el, step, opts) {
+    opts = opts || {};
+    let playing = opts.autoplay !== false && !SB.reduced;
+    let visible = false, raf = 0, last = 0;
+    const listeners = [];
+    function frame(t) {
+      raf = 0;
+      if (!playing || !visible) { last = 0; return; }
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt, t / 1000);
+      raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (playing && visible && !raf) raf = requestAnimationFrame(frame); }
+    if (window.IntersectionObserver) {
+      new IntersectionObserver((es) => { visible = es[0].isIntersecting; kick(); }, { rootMargin: '80px' }).observe(el);
+    } else { visible = true; kick(); }
+    const api = {
+      get playing() { return playing; },
+      play() { playing = true; last = 0; kick(); listeners.forEach((f) => f(true)); },
+      pause() { playing = false; listeners.forEach((f) => f(false)); },
+      toggle() { playing ? api.pause() : api.play(); },
+      onState(f) { listeners.push(f); },
+      step(dt) { step(dt || 1 / 60, performance.now() / 1000); }
+    };
+    return api;
+  };
+
+  /* ---------------- DOM helpers ---------------- */
+  SB.h = function (tag, attrs, html) {
+    const e = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  };
+  const ICON = {
+    play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"/></svg>',
+    reset: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-4.6 3H1.8A6.6 6.6 0 1 0 8 1.4V0L4.8 2.2 8 4.4z" fill="currentColor"/></svg>',
+    sun: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"/></g></svg>',
+    moon: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 1.2A6.8 6.8 0 1 0 14.8 11 5.6 5.6 0 0 1 10.8 1.2z" fill="currentColor"/></svg>',
+    menu: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+  SB.icon = ICON;
+
+  /* ---------------- sim frame ---------------- */
+  /* Builds the panel inside <section class="sim" id="..." data-num="..." data-title="...">.
+     spec.views: [{key, label, sub, aspect, cls, height, minH, maxH}]  spec.layout: 'one'|'two'|'' */
+  SB.frame = function (id, spec) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    spec = spec || {};
+    el.innerHTML = '';
+    const head = SB.h('div', { class: 'sim-head' });
+    head.appendChild(SB.h('span', { class: 'sim-tag', text: el.dataset.num || '실험' }));
+    head.appendChild(SB.h('h3', { class: 'sim-title', text: el.dataset.title || '' }));
+    const tools = SB.h('div', { class: 'sim-tools' });
+    head.appendChild(tools);
+    el.appendChild(head);
+    const body = SB.h('div', { class: 'sim-body' });
+    el.appendChild(body);
+    const views = {};
+    if (spec.views && spec.views.length) {
+      const vw = SB.h('div', { class: 'sim-views ' + (spec.layout || '') });
+      spec.views.forEach((v) => {
+        const box = SB.h('div', { class: 'view' });
+        if (v.label !== undefined) {
+          const lab = SB.h('div', { class: 'view-l' });
+          lab.innerHTML = '<b>' + v.label + '</b><span>' + (v.sub || '') + '</span>';
+          box.appendChild(lab);
+        }
+        const cv = SB.h('canvas', { class: 'cv ' + (v.cls || ''), role: 'img', 'aria-label': v.alt || v.label || '' });
+        box.appendChild(cv);
+        vw.appendChild(box);
+        views[v.key] = { box: box, cv: cv, label: box.querySelector('.view-l span'), spec: v };
+      });
+      body.appendChild(vw);
+    }
+    const ctls = SB.h('div', { class: 'ctls' });
+    const reads = SB.h('div', { class: 'reads' });
+    body.appendChild(ctls);
+    body.appendChild(reads);
+    const f = { el: el, body: body, views: views, ctls: ctls, reads: reads, tools: tools };
+    f.note = function (html) { const p = SB.h('p', { class: 'sim-note' }, html); body.appendChild(p); return p; };
+    f.legend = function (items, where) {
+      const lg = SB.h('div', { class: 'legend' });
+      lg.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+      (where || body).insertBefore(lg, ctls);
+      f._legend = lg; f._legendItems = items;
+      return lg;
+    };
+    f.refreshLegend = function () {
+      if (!f._legend) return;
+      const items = f._legendItems.map((it) => Object.assign({}, it, { c: typeof it.cf === 'function' ? it.cf() : it.c }));
+      f._legend.innerHTML = items.map((it) => '<span><i class="' + (it.dot ? 'dot' : '') + '" style="background:' + it.c + '"></i>' + it.t + '</span>').join('');
+    };
+    document.addEventListener('sb:theme', () => f.refreshLegend());
+    f.playButton = function (anim) {
+      const b = SB.h('button', { class: 'btn', type: 'button' });
+      const sync = (p) => { b.innerHTML = (p ? ICON.pause + ' 일시정지' : ICON.play + ' 재생'); b.setAttribute('aria-pressed', p ? 'true' : 'false'); };
+      b.addEventListener('click', () => anim.toggle());
+      anim.onState(sync); sync(anim.playing);
+      tools.appendChild(b);
+      return b;
+    };
+    f.button = function (label, fn, cls) {
+      const b = SB.h('button', { class: 'btn ' + (cls || ''), type: 'button' }, label);
+      b.addEventListener('click', fn);
+      tools.appendChild(b);
+      return b;
+    };
+    return f;
+  };
+
+  /* ---------------- controls ---------------- */
+  let ctlSeq = 0;
+  SB.controls = function (container, specs, onChange) {
+    const v = {};
+    const api = { v: v, el: {}, set: null };
+    function emit(id) { onChange && onChange(v, id); }
+    specs.forEach((s) => {
+      const uid = 'c' + (++ctlSeq) + '-' + (s.id || 'x');
+      if (s.type === 'range' || !s.type) {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const top = SB.h('div', { class: 'ctl-top' });
+        const lab = SB.h('label', { for: uid }, s.label);
+        const out = SB.h('output', { for: uid });
+        top.appendChild(lab); top.appendChild(out);
+        const inp = SB.h('input', { type: 'range', id: uid });
+        const log = !!s.log;
+        const toPos = (x) => log ? Math.round(1000 * Math.log(x / s.min) / Math.log(s.max / s.min)) : x;
+        const fromPos = (p) => {
+          if (!log) return Number(p);
+          let x = s.min * Math.pow(s.max / s.min, p / 1000);
+          const m = Math.pow(10, Math.floor(Math.log10(x)) - 2);
+          return Math.round(x / m) * m;
+        };
+        if (log) { inp.min = 0; inp.max = 1000; inp.step = 1; }
+        else { inp.min = s.min; inp.max = s.max; inp.step = s.step || 'any'; }
+        const fmt = s.fmt || ((x) => SB.f(x, 3) + (s.unit ? ' ' + s.unit : ''));
+        const paint = () => { const p = (Number(inp.value) - Number(inp.min)) / (Number(inp.max) - Number(inp.min)) * 100; inp.style.setProperty('--p', p + '%'); };
+        const setVal = (x, silent) => { v[s.id] = x; inp.value = toPos(x); out.textContent = fmt(x); paint(); if (!silent) emit(s.id); };
+        inp.addEventListener('input', () => { v[s.id] = fromPos(inp.value); out.textContent = fmt(v[s.id]); paint(); emit(s.id); });
+        wrap.appendChild(top); wrap.appendChild(inp);
+        container.appendChild(wrap);
+        api.el[s.id] = { input: inp, out: out, set: setVal, wrap: wrap, refmt: () => { out.textContent = fmt(v[s.id]); } };
+        setVal(s.value, true);
+      } else if (s.type === 'seg') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        if (s.label) wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<span class="l">' + s.label + '</span>'));
+        const seg = SB.h('div', { class: 'seg', role: 'group', 'aria-label': s.label || s.id });
+        const btns = s.options.map((o) => {
+          const b = SB.h('button', { type: 'button', 'data-v': o.v }, o.t);
+          if (o.tone) b.dataset.tone = o.tone;
+          b.addEventListener('click', () => { setVal(o.v); });
+          seg.appendChild(b);
+          return b;
+        });
+        const setVal = (x, silent) => { v[s.id] = x; btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(x)))); if (!silent) emit(s.id); };
+        wrap.appendChild(seg);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, buttons: btns };
+        setVal(s.value, true);
+      } else if (s.type === 'select') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        wrap.appendChild(SB.h('div', { class: 'ctl-top' }, '<label for="' + uid + '">' + s.label + '</label>'));
+        const sel = SB.h('select', { id: uid });
+        s.options.forEach((o) => { const op = SB.h('option', { value: o.v }, o.t); sel.appendChild(op); });
+        sel.addEventListener('change', () => { v[s.id] = sel.value; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = String(x); sel.value = String(x); if (!silent) emit(s.id); };
+        wrap.appendChild(sel);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, select: sel };
+        setVal(s.value, true);
+      } else if (s.type === 'check') {
+        const wrap = SB.h('div', { class: 'ctl' });
+        const lab = SB.h('label', { class: 'check' });
+        const inp = SB.h('input', { type: 'checkbox', id: uid });
+        lab.appendChild(inp); lab.appendChild(document.createTextNode(s.label));
+        inp.addEventListener('change', () => { v[s.id] = inp.checked; emit(s.id); });
+        const setVal = (x, silent) => { v[s.id] = !!x; inp.checked = !!x; if (!silent) emit(s.id); };
+        wrap.appendChild(lab);
+        container.appendChild(wrap);
+        api.el[s.id] = { set: setVal, wrap: wrap, input: inp };
+        setVal(s.value, true);
+      }
+    });
+    api.set = (id, x, silent) => api.el[id] && api.el[id].set(x, silent);
+    api.show = (id, on) => { if (api.el[id]) api.el[id].wrap.hidden = !on; };
+    return api;
+  };
+
+  /* ---------------- readouts ---------------- */
+  SB.reads = function (container, specs) {
+    const map = {};
+    specs.forEach((s) => {
+      const d = SB.h('div', { class: 'read' + (s.hl ? ' hl' : '') });
+      d.innerHTML = '<span>' + s.label + '</span><b>—</b>';
+      container.appendChild(d);
+      map[s.id] = d;
+    });
+    return {
+      set(id, text, state) {
+        const d = map[id]; if (!d) return;
+        d.querySelector('b').textContent = text;
+        d.classList.toggle('warn', state === 'warn');
+      },
+      el: map
+    };
+  };
+
+  /* ---------------- plotting ---------------- */
+  function niceStep(span, n) {
+    const raw = span / Math.max(1, n);
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const m = raw / p;
+    return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+  }
+  SB.ticks = function (a, b, n) {
+    const st = niceStep(b - a, n || 5);
+    const out = [];
+    for (let x = Math.ceil(a / st - 1e-9) * st; x <= b + st * 1e-6; x += st) out.push(Math.abs(x) < st * 1e-9 ? 0 : x);
+    return out;
+  };
+  SB.logTicks = function (a, b) {
+    const out = [];
+    for (let e = Math.floor(Math.log10(a)); e <= Math.ceil(Math.log10(b)); e++) {
+      const x = Math.pow(10, e);
+      if (x >= a * 0.999 && x <= b * 1.001) out.push(x);
+    }
+    return out;
+  };
+  SB.plot = function (o, box, opt) {
+    const ctx = o.ctx;
+    opt = Object.assign({ pad: [10, 12, 34, 46] }, opt || {});
+    const [pt, pr, pb, pl] = opt.pad;
+    const X0 = box.x + pl, X1 = box.x + box.w - pr, Y0 = box.y + pt, Y1 = box.y + box.h - pb;
+    const lx = (v) => opt.xlog ? Math.log10(v) : v;
+    const ly = (v) => opt.ylog ? Math.log10(v) : v;
+    const ax = lx(opt.xmin), bx = lx(opt.xmax), ay = ly(opt.ymin), by = ly(opt.ymax);
+    const p = {
+      x0: X0, x1: X1, y0: Y0, y1: Y1, ctx: ctx,
+      X: (v) => X0 + (lx(v) - ax) / (bx - ax) * (X1 - X0),
+      Y: (v) => Y1 - (ly(v) - ay) / (by - ay) * (Y1 - Y0),
+      invX: (px) => { const t = ax + (px - X0) / (X1 - X0) * (bx - ax); return opt.xlog ? Math.pow(10, t) : t; },
+      invY: (py) => { const t = ay + (Y1 - py) / (Y1 - Y0) * (by - ay); return opt.ylog ? Math.pow(10, t) : t; }
+    };
+    const font = '11px ' + SB.c('font').replace(/"/g, '"');
+    p.axes = function () {
+      ctx.save();
+      ctx.font = font;
+      ctx.lineWidth = 1;
+      const xt = opt.xticks || (opt.xlog ? SB.logTicks(opt.xmin, opt.xmax) : SB.ticks(opt.xmin, opt.xmax, opt.nx || Math.max(3, Math.round((X1 - X0) / 80))));
+      const yt = opt.yticks || (opt.ylog ? SB.logTicks(opt.ymin, opt.ymax) : SB.ticks(opt.ymin, opt.ymax, opt.ny || Math.max(3, Math.round((Y1 - Y0) / 45))));
+      ctx.strokeStyle = SB.c('line-2');
+      ctx.beginPath();
+      if (opt.grid !== false) {
+        yt.forEach((t) => { const y = Math.round(p.Y(t)) + 0.5; ctx.moveTo(X0, y); ctx.lineTo(X1, y); });
+        if (opt.xgrid) xt.forEach((t) => { const x = Math.round(p.X(t)) + 0.5; ctx.moveTo(x, Y0); ctx.lineTo(x, Y1); });
+      }
+      ctx.stroke();
+      ctx.strokeStyle = SB.c('line');
+      ctx.beginPath(); ctx.moveTo(X0, Math.round(Y1) + 0.5); ctx.lineTo(X1, Math.round(Y1) + 0.5); ctx.stroke();
+      if (opt.yaxisLine) { ctx.beginPath(); ctx.moveTo(Math.round(X0) + 0.5, Y0); ctx.lineTo(Math.round(X0) + 0.5, Y1); ctx.stroke(); }
+      ctx.fillStyle = SB.c('muted');
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const xf = opt.xfmt || ((t) => SB.f(t, 3));
+      const yf = opt.yfmt || ((t) => SB.f(t, 3));
+      xt.forEach((t) => ctx.fillText(xf(t), p.X(t), Y1 + 6));
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      yt.forEach((t) => ctx.fillText(yf(t), X0 - 6, p.Y(t)));
+      if (opt.xlabel) { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlabel, (X0 + X1) / 2, box.y + box.h - 1); }
+      if (opt.ylabel) { ctx.save(); ctx.translate(box.x + 10, (Y0 + Y1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(opt.ylabel, 0, 0); ctx.restore(); }
+      ctx.restore();
+      return p;
+    };
+    p.clip = function () { ctx.save(); ctx.beginPath(); ctx.rect(X0, Y0 - 1, X1 - X0, Y1 - Y0 + 2); ctx.clip(); };
+    p.unclip = function () { ctx.restore(); };
+    p.line = function (pts, color, width, dash) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = width || 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      let started = false;
+      pts.forEach((q) => {
+        if (q == null || !isFinite(q[1]) || !isFinite(q[0])) { started = false; return; }
+        const x = p.X(q[0]), y = p.Y(q[1]);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    };
+    p.area = function (pts, color, alpha, base) {
+      if (!pts.length) return;
+      ctx.save();
+      ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      ctx.beginPath();
+      const yb = p.Y(base == null ? Math.max(opt.ymin, opt.ylog ? opt.ymin : 0) : base);
+      ctx.moveTo(p.X(pts[0][0]), yb);
+      pts.forEach((q) => ctx.lineTo(p.X(q[0]), p.Y(q[1])));
+      ctx.lineTo(p.X(pts[pts.length - 1][0]), yb);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    };
+    p.band = function (x0, x1, color, alpha) {
+      ctx.save(); ctx.fillStyle = SB.rgba(color, alpha == null ? 0.12 : alpha);
+      const a = Math.max(X0, p.X(x0)), b = Math.min(X1, p.X(x1));
+      if (b > a) ctx.fillRect(a, Y0, b - a, Y1 - Y0);
+      ctx.restore();
+    };
+    p.vline = function (x, color, label, opts2) {
+      const xx = Math.round(p.X(x)) + 0.5;
+      if (xx < X0 - 1 || xx > X1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(xx, Y0); ctx.lineTo(xx, Y1); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'top'; ctx.textAlign = (xx > X1 - 60) ? 'right' : 'left'; ctx.fillText(label, xx + (xx > X1 - 60 ? -4 : 4), Y0 + 2 + ((opts2 && opts2.dy) || 0)); }
+      ctx.restore();
+    };
+    p.hline = function (y, color, label, opts2) {
+      const yy = Math.round(p.Y(y)) + 0.5;
+      if (yy < Y0 - 1 || yy > Y1 + 1) return;
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (opts2 && opts2.dash) ctx.setLineDash(opts2.dash);
+      ctx.beginPath(); ctx.moveTo(X0, yy); ctx.lineTo(X1, yy); ctx.stroke();
+      if (label) { ctx.setLineDash([]); ctx.font = font; ctx.fillStyle = SB.c('ink-2'); ctx.textBaseline = 'bottom'; ctx.textAlign = (opts2 && opts2.left) ? 'left' : 'right'; ctx.fillText(label, (opts2 && opts2.left) ? X0 + 4 : X1 - 4, yy - 3); }
+      ctx.restore();
+    };
+    p.dot = function (x, y, color, r) {
+      const xx = p.X(x), yy = p.Y(y);
+      ctx.save();
+      ctx.fillStyle = SB.c('surface'); ctx.beginPath(); ctx.arc(xx, yy, (r || 4.5) + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(xx, yy, r || 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    p.label = function (x, y, text, o2) {
+      o2 = o2 || {};
+      ctx.save(); ctx.font = (o2.bold ? '600 ' : '') + (o2.size || 11) + 'px ' + SB.c('font');
+      ctx.fillStyle = o2.color || SB.c('ink-2');
+      ctx.textAlign = o2.align || 'left'; ctx.textBaseline = o2.base || 'middle';
+      ctx.fillText(text, (o2.px ? x : p.X(x)) + (o2.dx || 0), (o2.py ? y : p.Y(y)) + (o2.dy || 0));
+      ctx.restore();
+    };
+    return p;
+  };
+  SB.font = function (size, weight) { return (weight ? weight + ' ' : '') + size + 'px ' + SB.c('font'); };
+  SB.text = function (ctx, s, x, y, o) {
+    o = o || {};
+    ctx.save();
+    ctx.font = SB.font(o.size || 12, o.weight);
+    ctx.fillStyle = o.color || SB.c('ink-2');
+    ctx.textAlign = o.align || 'left';
+    ctx.textBaseline = o.base || 'middle';
+    if (o.halo) { ctx.lineWidth = 4; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  };
+  SB.rrect = function (ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  };
+  SB.arrow = function (ctx, x0, y0, x1, y1, color, w, head) {
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w || 1.5;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    const a = Math.atan2(y1 - y0, x1 - x0), hs = head || 7;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hs * Math.cos(a - 0.4), y1 - hs * Math.sin(a - 0.4)); ctx.lineTo(x1 - hs * Math.cos(a + 0.4), y1 - hs * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  };
+
+  /* ---------------- quiz ---------------- */
+  function initQuiz() {
+    document.querySelectorAll('.quiz').forEach((qz) => {
+      const ans = Number(qz.dataset.a) - 1;
+      const items = Array.from(qz.querySelectorAll('.opts > li'));
+      const why = qz.querySelector('.why');
+      const keys = ['①', '②', '③', '④', '⑤'];
+      const btns = items.map((li, i) => {
+        const b = SB.h('button', { type: 'button', class: 'opt' });
+        b.innerHTML = '<span class="k">' + keys[i] + '</span><span>' + li.innerHTML + '</span>';
+        li.innerHTML = ''; li.appendChild(b);
+        b.addEventListener('click', () => {
+          if (qz.classList.contains('done')) return;
+          qz.classList.add('done');
+          btns.forEach((bb, j) => { bb.disabled = true; if (j === ans) bb.classList.add('correct'); });
+          const ok = i === ans;
+          if (!ok) b.classList.add('wrong');
+          qz.dataset.ok = ok ? '1' : '0';
+          if (why && !why.querySelector('.verdict')) {
+            const v = SB.h('span', { class: 'verdict ' + (ok ? 'ok' : 'no') }, ok ? '정답.' : '오답 — 정답은 ' + keys[ans] + '.');
+            why.insertBefore(v, why.firstChild);
+          }
+          const set = qz.closest('.quiz-set');
+          if (set) {
+            const all = set.querySelectorAll('.quiz');
+            const done = set.querySelectorAll('.quiz.done');
+            const good = set.querySelectorAll('.quiz[data-ok="1"]');
+            let sc = set.querySelector('.score');
+            if (!sc) { sc = SB.h('p', { class: 'score' }); set.appendChild(sc); }
+            sc.textContent = done.length + ' / ' + all.length + '문항 풀이 · ' + good.length + '개 정답' + (done.length === all.length ? (good.length === all.length ? ' — 모두 맞혔습니다.' : ' — 틀린 문항의 해설을 다시 읽어 보세요.') : '');
+          }
+        });
+        return b;
+      });
+    });
+  }
+
+  /* ---------------- page chrome ---------------- */
+  function chrome() {
+    const slug = document.body.dataset.slug || '';
+    const idx = SB.CHAPTERS.findIndex((c) => c.slug === slug);
+    const ch = idx >= 0 ? SB.CHAPTERS[idx] : null;
+    const home = BASE + 'index.html';
+    const chapHref = (c) => BASE + c.slug + '.html';
+
+    // top bar
+    const top = SB.h('header', { class: 'topbar' });
+    top.innerHTML =
+      '<div class="topbar-in">' +
+      '<a class="brand" href="' + home + '" aria-label="ShutterBook 처음으로"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>ShutterBook <small>글로벌 셔터 교과서</small></a>' +
+      '<span class="crumb">' + (ch ? '<b>' + ch.n + '</b> ' + ch.t : '') + '</span>' +
+      '<div class="top-actions">' +
+      '<button class="icon-btn" type="button" data-act="theme" aria-label="밝기 테마 전환"></button>' +
+      '<button class="icon-btn" type="button" data-act="menu" aria-label="챕터 목록 열기">' + ICON.menu + '<span>목차</span></button>' +
+      '</div></div><div class="progress" aria-hidden="true"></div>';
+    document.body.insertBefore(top, document.body.firstChild);
+    const skip = SB.h('a', { class: 'skip', href: '#main' }, '본문으로 건너뛰기');
+    document.body.insertBefore(skip, top);
+
+    const themeBtn = top.querySelector('[data-act="theme"]');
+    const paintTheme = () => { themeBtn.innerHTML = SB.isDark() ? ICON.sun : ICON.moon; themeBtn.setAttribute('aria-label', SB.isDark() ? '밝은 화면으로 전환' : '어두운 화면으로 전환'); };
+    paintTheme();
+    document.addEventListener('sb:theme', paintTheme);
+    themeBtn.addEventListener('click', () => SB.setTheme(SB.isDark() ? 'light' : 'dark'));
+
+    // drawer
+    const dr = SB.h('div', { class: 'drawer', id: 'chapter-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': '챕터 목록' });
+    dr.innerHTML = '<div class="drawer-panel"><div class="drawer-head"><b>전체 챕터</b><button class="icon-btn" type="button" data-act="close" aria-label="닫기">' + ICON.close + '</button></div><ol>' +
+      '<li><a href="' + home + '"' + (!ch ? ' aria-current="page"' : '') + '><span>·</span><span>처음 페이지</span></a></li>' +
+      SB.CHAPTERS.map((c) => '<li><a href="' + chapHref(c) + '"' + (ch && c.slug === ch.slug ? ' aria-current="page"' : '') + '><span>' + c.n + '</span><span>' + c.t + '</span></a></li>').join('') + '</ol></div>';
+    document.body.appendChild(dr);
+    const menuBtn = top.querySelector('[data-act="menu"]');
+    const open = () => { dr.classList.add('open'); const a = dr.querySelector('[aria-current]') || dr.querySelector('a'); a && a.focus(); };
+    const close = () => { dr.classList.remove('open'); menuBtn.focus(); };
+    menuBtn.addEventListener('click', open);
+    dr.addEventListener('click', (e) => { if (e.target === dr || e.target.closest('[data-act="close"]')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dr.classList.contains('open')) close(); });
+
+    // progress
+    const bar = top.querySelector('.progress');
+    const art = document.querySelector('.article') || document.querySelector('main');
+    const onScroll = () => {
+      if (!art) return;
+      const r = art.getBoundingClientRect();
+      const total = r.height - window.innerHeight * 0.6;
+      const p = SB.clamp((-r.top + 60) / Math.max(1, total), 0, 1);
+      bar.style.width = (p * 100).toFixed(2) + '%';
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // headings: ids + anchors + toc
+    const hs = Array.from(document.querySelectorAll('.article h2'));
+    hs.forEach((h, i) => {
+      if (!h.id) h.id = 's' + (i + 1);
+      const a = SB.h('a', { class: 'anchor', href: '#' + h.id, 'aria-label': '이 절의 링크' }, '#');
+      h.appendChild(a);
+    });
+    const toc = document.querySelector('.toc');
+    if (toc && hs.length) {
+      toc.innerHTML = '<summary>이 장의 구성 (' + hs.length + '절)</summary><ol>' + hs.map((h) => '<li><a href="#' + h.id + '">' + h.firstChild.textContent + '</a></li>').join('') + '</ol>';
+    }
+
+    // pager
+    const pg = document.querySelector('.pager');
+    if (pg && ch) {
+      const prev = SB.CHAPTERS[idx - 1], next = SB.CHAPTERS[idx + 1];
+      pg.innerHTML =
+        (prev ? '<a class="prev" href="' + chapHref(prev) + '"><span>이전 · ' + prev.n + '</span>' + prev.t + '</a>' : '<a class="prev" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>') +
+        (next ? '<a class="next" href="' + chapHref(next) + '"><span>다음 · ' + next.n + '</span>' + next.t + '</a>' : '<a class="next" href="' + home + '"><span>처음으로</span>ShutterBook 표지</a>');
+    }
+
+    // footer
+    const ft = SB.h('footer', { class: 'site-foot' });
+    ft.innerHTML = '<div class="shell"><div><b>ShutterBook</b> · 글로벌 셔터 CMOS 이미지 센서를 시뮬레이터로 배우는 인터랙티브 교과서. <a href="https://sensorbook.euiyun.com/" rel="noopener">SensorBook</a>의 구성 방식을 본떠 만들었습니다.</div>' +
+      '<div>시뮬레이터는 개념 이해를 위한 단순화 모델입니다. 제품 수치는 각 장 끝의 출처(제조사 발표·학회 논문)를 따르며, 실제 설계에는 데이터시트를 확인하세요.</div></div>';
+    document.body.appendChild(ft);
+  }
+
+  /* ---------------- MathJax ---------------- */
+  function math() {
+    if (!document.querySelector('.eq, .m')) return;
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global', scale: 1.0 },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'canvas'] }
+    };
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js';
+    s.async = true;
+    s.id = 'MathJax-script';
+    document.head.appendChild(s);
+  }
+
+  SB.ready = function (fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  };
+  SB.ready(function () {
+    chrome();
+    initQuiz();
+    math();
+  });
+})();
+</script>
+<script>
+/* Chapter 10 — glossary search */
+SB.ready(function () {
+  const q = document.getElementById('gloss-q'), dl = document.getElementById('gloss'), n = document.getElementById('gloss-n');
+  if (!q || !dl) return;
+  const items = Array.from(dl.children);
+  const norm = (s) => s.toLowerCase().replace(/\s+/g, '');
+  const run = () => {
+    const k = norm(q.value || '');
+    let c = 0;
+    items.forEach((it) => { const hit = !k || norm(it.textContent).includes(k); it.hidden = !hit; if (hit) c++; });
+    n.textContent = c + ' / ' + items.length + '개 용어';
+  };
+  q.addEventListener('input', run);
+  run();
+});
+</script>
+</body>
+</html>
